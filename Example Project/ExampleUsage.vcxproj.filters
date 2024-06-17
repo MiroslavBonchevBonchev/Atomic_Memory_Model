@@ -51,4 +51,9 @@
       <Filter>Header Files\AMM</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="cs.cd">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
 </Project>

@@ -115,6 +115,9 @@
     <ClInclude Include="..\AMM\ResId.h" />
     <ClInclude Include="..\AMM\StringEx.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="cs.cd" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
