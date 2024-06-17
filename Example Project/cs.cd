@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="MUnit&lt;tMemClass&gt;" Collapsed="true">
+    <Position X="7.5" Y="1.25" Width="2.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAAAAAAAAAQBUAQQAAIAQAQACAQAAgAAAAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MAtom.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MUnitException" Collapsed="true">
+    <Position X="7.5" Y="0.5" Width="2.5" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAQABAAAAAAACAEIAAgAQAAAAAQAAgAAgAQAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MException.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MStringEx&lt;tChar&gt;" Collapsed="true">
+    <Position X="8" Y="5" Width="3.25" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Enum Name="MStringEx&lt;tChar&gt;::FormattedUnsignedInteger" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::FormattedSignedInteger" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::StringFromMuduleInfo" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::TypeInternetError" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::NumericBase" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::FromFormat" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::FromTypeBSTR" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::StringFromMemory" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="MStringEx&lt;tChar&gt;::TypeSystemError" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\StringEx.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>DAjwMkAiAIBkvRChdAoQDROh4mwIBYC0bAHySAHCwyQ=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\StringEx.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MStringEx2Z&lt;tChar&gt;" Collapsed="true">
+    <Position X="8" Y="6.5" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>AAhAAAAgAAAAgAAABAAAAQAAAAAAAAAAAAAAAABAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\StringEx.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MSecureString&lt;tChar&gt;" Collapsed="true">
+    <Position X="11.5" Y="6.5" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>IABhAAAgAAAAAACABAIAAQAAQCAIAAABCAAgAABAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\StringEx.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="HandleMemory&lt;tMemClass&gt;" Collapsed="true">
+    <Position X="4.5" Y="3.75" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>AAAQAAAAgAAAEAAAAAIAIAQAAAQgBAAQEAAgAAAAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MAtom.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="ShellMemory&lt;tMemClass&gt;" Collapsed="true">
+    <Position X="11.5" Y="3.75" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAEAAAAAIAAAQAQCQAAAAAEACgAAAAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MAtom.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MemoryPH&lt;tMemClass&gt;" Collapsed="true">
+    <Position X="8" Y="3.75" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAQAAAAAEAAAgAIAAAQAAAQAAAAAEAAgIEAAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MAtom.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MAtom&lt;tMemClass&gt;" Collapsed="true">
+    <Position X="8" Y="2.5" Width="3.25" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <NestedTypes>
+      <Enum Name="MAtom&lt;tMemClass&gt;::MemoryOrigin">
+        <TypeIdentifier>
+          <NewMemberFileName>C:\MProjects\Atomic Memory Model\MAtom.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>gBhRkAAgAAMAtBGAAAIAgwVAliUIEAAsGAAiCAAAlGA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MAtom.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="SecureMemory&lt;MemoryType, tMemClass&gt;" Collapsed="true">
+    <Position X="11.5" Y="5" Width="3.25" />
+    <TypeIdentifier>
+      <HashCode>EBQAAAAAAAQAAAAAAAIAAAAABAAIAAQAAAAgAAAAAkA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MAtom.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MAtomException" Collapsed="true">
+    <Position X="4.5" Y="1.25" Width="2.5" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AEgDABAAABAgAACQIAABAAAAGAAAAAAAQAIhCAgAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MException.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MStringExException" Collapsed="true">
+    <Position X="4.5" Y="0.5" Width="2.5" />
+    <Compartments>
+      <Compartment Name="Nested Types" Collapsed="false" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAEACAAIAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>C:\MProjects\Atomic Memory Model\MException.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{97efb67e-9a2f-48c5-b66f-3979c8bdd89a}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{f0e9c998-a02b-467d-995d-250fd0d6d0e8}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{80bb9e2e-ce5e-4f03-81fe-1205751bbb37}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Header Files\AMM">
+      <UniqueIdentifier>{10349606-0e61-4f9e-96ee-a549731d1618}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ExampleUsage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\AMM\Common.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\MAtom.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\MException.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\MHandle.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\MList.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\MMemory.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\MSmartPtr.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\ResId.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\StringEx.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
