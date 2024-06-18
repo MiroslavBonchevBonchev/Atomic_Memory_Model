@@ -3,7 +3,7 @@
 // ExampleUsage.cpp :      Defines the entry point for a console application demonstrating example
 //                         usage of the ATOMIC MEMORY MODEL - Example Project Using 'Phase Two'.
 //
-// © Copyright 2005 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
+// © Copyright 2005 - 2024 by Miroslav Bonchev Bonchev. All rights reserved.
 //
 //
 //**********************************************************************************************************************
