@@ -239,7 +239,6 @@ int main()
 
 
 
-
 MemoryPH< DWORD > fun1( MemoryPH< DWORD > m )
 {
    printf( TEXT( "fun1: memory units = %llu, bytes = %llu   " ), m.GetSize().GetUnits(), m.GetSize().InBytes() );
@@ -263,6 +262,7 @@ MemoryPH< DWORD > fun1( MemoryPH< DWORD > m )
 }
 
 
+
 void fun2( const MemoryPH< DWORD >& m )
 {
    printf( TEXT( "fun2: memory units = %llu, bytes = %llu   " ), m.GetSize().GetUnits(), m.GetSize().InBytes() );
@@ -278,6 +278,7 @@ void fun2( const MemoryPH< DWORD >& m )
 }
 
 
+
 void fun3( const MAtom< DWORD >& m )
 {
    printf( TEXT( "fun3: memory units = %llu, bytes = %llu   " ), m.GetSize().GetUnits(), m.GetSize().InBytes() );
@@ -291,6 +292,7 @@ void fun3( const MAtom< DWORD >& m )
 
    printf( TEXT( "\n\n" ) );
 }
+
 
 
 void fun4( const MAtom< TCHAR >& m )
