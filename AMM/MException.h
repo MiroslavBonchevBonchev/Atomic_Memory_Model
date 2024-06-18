@@ -4,7 +4,7 @@
 //
 //                   ATOMIC MEMORY MODEL - Implementation Example 'Phase Two'
 //
-// © Copyright 2005 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
+// © Copyright 2005 - 2014 by Miroslav Bonchev Bonchev. All rights reserved.
 //
 //
 //******************************************************************************************************
@@ -13,7 +13,7 @@
 // Open Source License – The MIT License
 //
 //
-// {your product} uses the Atomic Memory Model by Miroslav Bonchev Bonchev.
+// Atomic Memory Model © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated  documentation files  (the "Software"),  to deal  in the Software without restriction,
@@ -39,7 +39,7 @@
 #pragma once
 
 
-#include "Common.h"
+#include "CommonAMM.h"
 
 
 #pragma warning( push )
@@ -47,13 +47,6 @@
 
 
 typedef size_t MUI;
-
-
-#ifdef _WIN64 
-   typedef __int64 MUI_SIGNED;
-#else
-   typedef __int32 MUI_SIGNED;
-#endif
 
 
 template< class tMin, bool bIncludingMin, class tArg, bool bIncludingMax, class tMax > bool IsInRange( const tMin &objMin, const tArg &objArg, const tMax &objMax ) throw()
@@ -129,55 +122,57 @@ public:
    MUnitException& operator=( const MUnitException& objMUnitException ) throw()
    {
       eError = objMUnitException.eError;
+
+      return( *this );
    }
 
 
 public:
-   __forceinline static void TestTargetSize32( const MUI muiUnits ) throw( MUnitException )
+   __forceinline static void TestTargetSize32( const MUI muiUnits ) DECLARE_THROW( MUnitException )
    {
       if( muiUnits > ((DWORD)-1) )
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::InsufficientTarget ) );
+         // MUnitException_throw( MUnitException( MUnitException::InsufficientTarget ) );
       }
    }
 
 
-   __forceinline static void TestPPOverflow( const MUI muiUnits ) throw( MUnitException )
+   __forceinline static void TestPPOverflow( const MUI muiUnits ) DECLARE_THROW( MUnitException )
    {
       if( 0 == muiUnits )
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::ePPOverflow ) );
+         // MUnitException_throw( MUnitException( MUnitException::ePPOverflow ) );
       }
    }
 
 
-   __forceinline static void TestMMOverflow( const MUI muiUnits ) throw( MUnitException )
+   __forceinline static void TestMMOverflow( const MUI muiUnits ) DECLARE_THROW( MUnitException )
    {
       if( (MUI)-1 == muiUnits )
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::eMMOverflow ) );
+         // MUnitException_throw( MUnitException( MUnitException::eMMOverflow ) );
       }
    }
 
 
-   __forceinline static void TestAdd( const MUI muiSummandL, const MUI muiSummandR   ) throw( MUnitException )
+   __forceinline static void TestAdd( const MUI muiSummandL, const MUI muiSummandR   ) DECLARE_THROW( MUnitException )
    {
       if( ((MUI)-1 - muiSummandL) < muiSummandR )
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::eAddOverflow ) );
+         // MUnitException_throw( MUnitException( MUnitException::eAddOverflow ) );
       }
    }
    
    
-   __forceinline static void TestMul( const MUI muiFactorL,  const MUI muiFactorR ) throw( MUnitException )
+   __forceinline static void TestMul( const MUI muiFactorL,  const MUI muiFactorR ) DECLARE_THROW( MUnitException )
    {
       if( 0 == muiFactorL )
       {
@@ -195,38 +190,42 @@ public:
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::eMulOverflow ) );
+         // MUnitException_throw( MUnitException( MUnitException::eMulOverflow ) );
       }
    }
    
    
-   __forceinline static void TestSub( const MUI muiMinuend,  const MUI muiSubtrahend ) throw( MUnitException )
+   __forceinline static void TestSub( const MUI muiMinuend,  const MUI muiSubtrahend ) DECLARE_THROW( MUnitException )
    {
       if( muiMinuend < muiSubtrahend )
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::eSubOverflow ) );
+         // MUnitException_throw( MUnitException( MUnitException::eSubOverflow ) );
       }
    }
    
    
-   __forceinline static void TestDiv( const MUI muiDividend, const MUI muiDivisor    ) throw( MUnitException )
+   __forceinline static void TestDiv( const MUI muiDividend, const MUI muiDivisor    ) DECLARE_THROW( MUnitException )
    {
       if( 0 == muiDivisor )
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::eIntegerDivisionByZero ) );
+         // MUnitException_throw( MUnitException( MUnitException::eIntegerDivisionByZero ) );
       }
       
       if( 0 != (muiDividend % muiDivisor) )
       {
          MASSERT( FALSE );
 
-         throw( MUnitException( MUnitException::eDivOverflow ) );
+         // MUnitException_throw( MUnitException( MUnitException::eDivOverflow ) );
       }
    }
+
+
+public:
+   Error GetExceptionErrorCode() const throw() { return( eError ); }
 };
 
 
@@ -295,130 +294,137 @@ public:
 
 
 public:
-   Error GetExceptionError() const
+   Error GetExceptionErrorCode() const
    {
       return( eError );
    }
 
 
-   DWORD GetSystemError() const
+   DWORD GetSystemErrorCode() const
    {
       return( dwSysError );
    }
 
 
 public:
-   __forceinline static void TestNonNullPointer( const void* pvPointer )  throw( MAtomException )
+   __forceinline static void TestNonNullPointer( const void* pvPointer )  DECLARE_THROW( MAtomException )
    {
       if( NULL == pvPointer )
       {
          MASSERT( FALSE );
       
-         throw( MAtomException( MAtomException::eInvalidPointerNull ) );
+         MAtomException_throw( MAtomException( MAtomException::eInvalidPointerNull ) );
       }
    }
    
    
-   __forceinline static void TestCompatibleCall( const bool bCompatible ) throw( MAtomException )
+   __forceinline static void TestCompatibleCall( const bool bCompatible ) DECLARE_THROW( MAtomException )
    {
       if( !bCompatible )
       {
          MASSERT( FALSE );
          
-         throw( MAtomException( MAtomException::eIncompatibleCall ) );
+         MAtomException_throw( MAtomException( MAtomException::eIncompatibleCall ) );
       }
    }
    
    
-   __forceinline static void ExceptionIlligalMethodCall() throw( MAtomException )
+   __forceinline static void ExceptionIlligalMethodCall() DECLARE_THROW( MAtomException )
    {
       MASSERT( FALSE );
       
-      throw( MAtomException( MAtomException::eIlligalMethodCall ) );
+      MAtomException_throw( MAtomException( MAtomException::eIlligalMethodCall ) );
    }
 
 
-   __forceinline static void ExceptionInvaldCall( const DWORD dwSystemError ) throw( MAtomException )
+   __forceinline static void ExceptionInvaldCall( const DWORD 
+      #if defined( ENABLE_MAtomException )
+         dwSystemError
+      #endif
+      ) DECLARE_THROW( MAtomException )
    {
       MASSERT( FALSE );
 
-      throw( MAtomException( MAtomException::eInvalidCall, dwSystemError ) );
+      MAtomException_throw( MAtomException( MAtomException::eInvalidCall, dwSystemError ) );
    }
    
    
-   __forceinline static void ExceptionFailedToOperate( const DWORD dwSystemError ) throw( MAtomException )
+   __forceinline static void ExceptionFailedToOperate( const DWORD 
+      #if defined( ENABLE_MAtomException )
+            dwSystemError
+      #endif
+      ) DECLARE_THROW( MAtomException )
    {
       MASSERT( FALSE );
 
-      throw( MAtomException( MAtomException::eFailedToOperate, dwSystemError ) );
+      MAtomException_throw( MAtomException( MAtomException::eFailedToOperate, dwSystemError ) );
    }
 
 
-   __forceinline static void ExceptionInsufficientMemory() throw( MAtomException )
-   {
-      MASSERT( FALSE );
-      
-      throw( MAtomException( MAtomException::eOutOfMemory, ERROR_NOT_ENOUGH_MEMORY ) );
-   }
-
-
-   __forceinline static void ExceptionAccessViolation() throw( MAtomException )
+   __forceinline static void ExceptionInsufficientMemory() DECLARE_THROW( MAtomException )
    {
       MASSERT( FALSE );
       
-      throw( MAtomException( MAtomException::eAccessViolation, ERROR_ACCESS_DENIED ) );
+      MAtomException_throw( MAtomException( MAtomException::eOutOfMemory, ERROR_NOT_ENOUGH_MEMORY ) );
    }
 
 
-   __forceinline static void ExceptionInvalidData() throw( MAtomException )
+   __forceinline static void ExceptionAccessViolation() DECLARE_THROW( MAtomException )
    {
       MASSERT( FALSE );
       
-      throw( MAtomException( MAtomException::eInvalidData, ERROR_INVALID_DATA ) );
+      MAtomException_throw( MAtomException( MAtomException::eAccessViolation, ERROR_ACCESS_DENIED ) );
    }
 
 
-   template< bool bZeroInRange, bool bUpperLimitInRange >
-      __forceinline static void TestInRangeZero2UpperLimit( const MUI muiIndex, const MUI muiUpperLimit ) throw( MAtomException )
+   __forceinline static void ExceptionInvalidData() DECLARE_THROW( MAtomException )
+   {
+      MASSERT( FALSE );
+      
+      MAtomException_throw( MAtomException( MAtomException::eInvalidData, ERROR_INVALID_DATA ) );
+   }
+
+
+   template< bool bZeroInRange, bool bUpperLimitInRange > __forceinline static void TestInRangeZero2UpperLimit( const MUI muiIndex, const MUI muiUpperLimit ) DECLARE_THROW( MAtomException )
    {
       if( !IsInRange< MUI, bZeroInRange, MUI, bUpperLimitInRange, MUI >( 0, muiIndex, muiUpperLimit ) )
       {
          MASSERT( FALSE );
 
-         throw( MAtomException( MAtomException::eZero2UpperLimitOutOfRange ) );
+         MAtomException_throw( MAtomException( MAtomException::eZero2UpperLimitOutOfRange ) );
       }
    }
 
 
-   template< class tMemClass > __forceinline static void TestTargetMemorySpace( typename const MUnit< tMemClass >& muOffset, typename const MUnit< tMemClass >& muTransfer, typename const MUnit< tMemClass >& muSize ) throw( MAtomException )
+   template< class tMemClass > __forceinline static void TestTargetMemorySpace( const MUnit< tMemClass >& muOffset, const MUnit< tMemClass >& muTransfer, const MUnit< tMemClass >& muSize ) DECLARE_THROW( MAtomException )
    {
       if( (muOffset + muTransfer) > muSize )
       {
          MASSERT( FALSE );
          
-         throw( MAtomException( MAtomException::eOutofTargetMemorySpace ) );
+         MAtomException_throw( MAtomException( MAtomException::eOutofTargetMemorySpace ) );
       }
    }
 
 
-   template< class tMemClass > __forceinline static void TestSourceMemorySpace( typename const MUnit< tMemClass >& muOffset, typename const MUnit< tMemClass >& muTransfer, typename const MUnit< tMemClass >& muSize ) throw( MAtomException )
+   template< class tMemClass > __forceinline static void TestSourceMemorySpace( const MUnit< tMemClass >& muOffset, const MUnit< tMemClass >& muTransfer, const MUnit< tMemClass >& muSize ) DECLARE_THROW( MAtomException )
    {
       if( (muOffset + muTransfer) > muSize )
       {
          MASSERT( FALSE );
          
-         throw( MAtomException( MAtomException::eOutofSourceMemorySpace ) );
+         MAtomException_throw( MAtomException( MAtomException::eOutofSourceMemorySpace ) );
       }
    }
 
 
-   template< class tMemClass, class tMemCast > __forceinline static void TestSourceMemorySpaceCast( typename const MUnit< tMemClass >& muOffset, typename const MUnit< tMemCast >& muUnitsCast, typename const MUnit< tMemClass >& muSize ) throw( MAtomException )
+   template< class tMemClass, class tMemCast > __forceinline static void TestSourceMemorySpaceCast( const MUnit< tMemClass >& muOffset, const MUnit< tMemCast >& muUnitsCast, const MUnit< tMemClass >& muSize ) DECLARE_THROW( MAtomException )
    {
       if( (muOffset.InBytes() + muUnitsCast.InBytes()) > muSize.InBytes() )
       {
          MASSERT( FALSE );
          
-         throw( MAtomException( MAtomException::eOutofSourceMemorySpace ) );
+         MAtomException_throw( MAtomException( MAtomException::eOutofSourceMemorySpace ) );
       }
    }
 };
@@ -432,6 +438,7 @@ public:
    {
       CouldNotLoadResource,
       CouldNotDereferenceFileSystemObject,
+      CouldNotCreateFileSystemLink,
       InvalidCharacter,
       InvalidNumeralSystemBase
    } eException;
@@ -443,7 +450,7 @@ public:
 
 
 public:
-   MStringExException GetException() const throw() { return( eException ); }
+   Exception GetExceptionErrorCode() const throw() { return( eException ); }
 };
 
 

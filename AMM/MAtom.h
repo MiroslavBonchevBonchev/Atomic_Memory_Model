@@ -4,16 +4,16 @@
 //
 //                   ATOMIC MEMORY MODEL - Implementation Example 'Phase Two'
 //
-// © Copyright 2005 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
+// © Copyright 2005 - 2014 by Miroslav Bonchev Bonchev. All rights reserved.
 //
 //
 //******************************************************************************************************
 
 
-// Open Source License – The MIT License
+// Open Source License - The MIT License
 //
 //
-// {your product} uses the Atomic Memory Model by Miroslav Bonchev Bonchev.
+// Atomic Memory Model © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated  documentation files  (the "Software"),  to deal  in the Software without restriction,
@@ -39,302 +39,40 @@
 #pragma once
 
 
-#include "Common.h"
+#include "CommonAMM.h"
 #include "MException.h"
-#include "MMemory.h"
+#include "MUnit.h"
 #include "MHandle.h"
 #include "MSmartPtr.h"
-#include "Objidl.h"
 
 
-#pragma warning( push )
-#pragma warning( disable : 4290 )   // warning C4290: C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+
+#ifdef _WIN32
+   #include "Objidl.h"
+#endif
 
 
-extern HMODULE hDefaultTextResourceModule;
 
 
-template< class tMemClass >
-class MUnit
+#ifdef _WIN32
+   #pragma warning( push )
+   #pragma warning( disable : 4290 )   // warning C4290: C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+#endif
+
+
+#ifdef _WIN32
+   extern HMODULE hDefaultTextResourceModule;
+#endif
+
+
+extern const unsigned __int64 primes4000001[];
+
+
+enum MemoryOrigin
 {
-protected:
-   MUI muiUnits;
-
-
-public:
-   MUnit() : muiUnits( 0 )
-   {
-   }
-
-
-   MUnit( typename const MUnit< tMemClass >& objMUnit ) : muiUnits( objMUnit.muiUnits )
-   {
-   }
-
-
-   explicit MUnit( const MUI muiNumberOfUnits ) : muiUnits( muiNumberOfUnits )
-   {
-   }
-
-
-   ~MUnit()
-   {
-   }
-
-
-   MUnit< tMemClass >& operator=( typename const MUnit< tMemClass >& objMUnit )
-   {
-      muiUnits = objMUnit.muiUnits;
-      
-      return( *this );
-   }
-
-
-   MUnit< tMemClass >& operator=( const MUI muiNumberOfUnits )
-   {
-      muiUnits = muiNumberOfUnits;
-      
-      return( *this );
-   }
-
-
-   MUI GetUnits() const throw()
-   {
-      return( muiUnits );
-   }
-
-
-   DWORD GetUnits32() const throw()
-   {
-      MUnitException::TestTargetSize32( muiUnits );
-
-      return( (DWORD)muiUnits );
-   }
-
-
-   MUI InBytes() const throw()
-   {
-      return( muiUnits * sizeof( tMemClass ) );
-   }
-
-
-   DWORD InBytes32() const
-   {
-      MUnitException::TestTargetSize32( muiUnits * sizeof( tMemClass ) );
-
-      return( (DWORD)(muiUnits * sizeof( tMemClass )) );
-   }
-
-
-   // Returns true if the casting conversion is possible and false otherwise.
-   // Typical use: MUnit< BYTE > mu( 4 );
-   // bool bCanConverttoDword = mu.CanItBe< DWORD >();
-   template< class tmCast > bool CanItBe() const throw()
-   {
-      return( 0 == (InBytes() % sizeof( tmCast )) );
-   }
-
-
-   // Returns the number of memory units of the specified class, which are contained in memory chunk of another class.
-   // The function throws exception if the conversion yields fraction.
-   // Typical use: MUnit< DWORD > m1( MUnit< __int64 >( 256 ).As< DWORD >() );
-   template< class tmCast > MUnit< tmCast > As() const throw( MUnitException )
-   {
-      MUnitException::TestDiv( InBytes(), sizeof( tmCast ) );
-      
-      return( MUnit< tmCast >( InBytes() / sizeof( tmCast ) ) );
-   }
-
-
-   // Arithmetic operators
-   MUnit< tMemClass > operator++() throw( MUnitException )
-   {
-      muiUnits++; MUnitException::TestPPOverflow( muiUnits );
-      
-      return( *this );
-   }
-
-
-   MUnit< tMemClass > operator++( int ) throw( MUnitException )
-   {
-      const MUnit muPostFix( *this );
-      
-      operator++();
-
-      return( muPostFix );
-   }
-
-
-   MUnit< tMemClass > operator--() throw( MUnitException )
-   {
-      muiUnits--;
-      
-      MUnitException::TestMMOverflow( muiUnits );
-      
-      return( *this );
-   }
-
-
-   MUnit< tMemClass > operator--( int ) throw( MUnitException )
-   {
-      const MUnit muPostFix( *this );
-      
-      operator--();
-      
-      return( muPostFix );
-   }
-
-
-   MUnit< tMemClass >& operator+=( typename const MUnit< tMemClass >& muSummand ) throw( MUnitException )
-   {
-      MUnitException::TestAdd( muiUnits, muSummand.muiUnits );
-      
-      muiUnits += muSummand.muiUnits;
-      
-      return( *this );
-   }
-
-
-   MUnit< tMemClass >& operator*=( typename const MUnit< tMemClass >& muFactor ) throw( MUnitException )
-   {
-      MUnitException::TestMul( muiUnits, muFactor.muiUnits );
-      
-      muiUnits *= muFactor.muiUnits;
-      
-      return( *this );
-   }
-   
-   
-   MUnit< tMemClass >& operator-=( typename const MUnit< tMemClass >& muSubtrahend ) throw( MUnitException )
-   {
-      MUnitException::TestSub( muiUnits, muSubtrahend.muiUnits );
-      
-      muiUnits -= muSubtrahend.muiUnits;
-      
-      return( *this );
-   }
-   
-   
-   MUnit< tMemClass >& operator/=( typename const MUnit< tMemClass >& muDivisor ) throw( MUnitException )
-   {
-      MUnitException::TestDiv( muiUnits, muDivisor.muiUnits );
-      
-      muiUnits /= muDivisor.muiUnits;
-      
-      return( *this );
-   }
-
-
-   friend MUnit< tMemClass > operator +( const MUI muiSummand, typename const MUnit< tMemClass >& muSummand ) throw( MUnitException )
-   {
-      MUnitException::TestAdd( muiSummand, muSummand.muiUnits );
-      
-      return( MUnit< tMemClass >( muiSummand + muSummand.muiUnits ) );
-   }
-
-
-   friend MUnit< tMemClass > operator +( typename const MUnit< tMemClass >& muSummand, const MUI muiSummand ) throw( MUnitException )
-   {
-      return( operator+( muiSummand, muSummand ) );
-   }
-
-
-   friend MUnit< tMemClass > operator +( typename const MUnit< tMemClass >& muSummandL, typename const MUnit< tMemClass >& muSummandR ) throw( MUnitException )
-   {
-      return( operator+( muSummandL.muiUnits, muSummandR ) );
-   }
-
-
-   friend MUnit< tMemClass > operator *( const MUI muiFactor, typename const MUnit< tMemClass >& muFactor ) throw( MUnitException )
-   {
-      const MUI muiResult( muiFactor * muFactor.muiUnits );
-      
-      MUnitException::TestMul( muiFactor, muFactor.muiUnits );
-      
-      return( MUnit< tMemClass >( muiResult ) );
-   }
-
-
-   friend MUnit< tMemClass > operator *( typename const MUnit< tMemClass >& muFactor, const MUI muiFactor ) throw( MUnitException )
-   {
-      return( operator*( muiFactor, muFactor ) );
-   }
-
-
-   friend MUnit< tMemClass > operator *( typename const MUnit< tMemClass >& muFactorL, typename const MUnit< tMemClass >& muFactorR ) throw( MUnitException )
-   {
-      return( operator*( muFactorL.muiUnits, muFactorR ) );
-   }
-
-
-   friend MUnit< tMemClass > operator -( const MUI muiMinuend, typename const MUnit< tMemClass >& muSubtrahend ) throw( MUnitException )
-   {
-      MUnitException::TestSub( muiMinuend, muSubtrahend.muiUnits );
-      
-      return( MUnit< tMemClass >( muiMinuend - muSubtrahend.muiUnits ) );
-   }
-
-
-   friend MUnit< tMemClass > operator -( typename const MUnit< tMemClass >& muMinuend, const MUI muiSubtrahend ) throw( MUnitException )
-   {
-      return( operator-( muMinuend.muiUnits, MUnit< tMemClass >( muiSubtrahend ) ) );
-   }
-   
-   
-   friend MUnit< tMemClass > operator -( typename const MUnit< tMemClass >& muMinuend, typename const MUnit< tMemClass >& muSubtrahend  ) throw( MUnitException )
-   {
-      return( operator-( muMinuend.muiUnits, muSubtrahend ) );
-   }
-
-
-   friend MUnit< tMemClass > operator /( const MUI muiDividend, typename const MUnit< tMemClass >& muDivisor ) throw( MUnitException )
-   {
-      MUnitException::TestDiv( muiDividend, muDivisor.muiUnits );
-      
-      return( MUnit( muiDividend / muDivisor.muiUnits ) );
-   }
-
-
-   friend MUnit< tMemClass > operator /( typename const MUnit< tMemClass >& muDividend, const MUI muiDivisor ) throw( MUnitException )
-   {
-      return( operator/( muDividend.muiUnits, MUnit< tMemClass >( muiDivisor) ) );
-   }
-
-
-   friend MUnit< tMemClass > operator /( typename const MUnit< tMemClass >& muDividend, typename const MUnit< tMemClass >& muDivisor ) throw( MUnitException )
-   {
-      return( operator/( muDividend.muiUnits, muDivisor ) );
-   }
-
-
-   friend bool operator  <(          const MUI                 muiUnits, typename const MUnit< tMemClass >& muUnits  ) throw() { return( muiUnits          <  muUnits.muiUnits  ); }
-   friend bool operator  <( typename const MUnit< tMemClass >& muUnits,           const MUI                 muiUnits ) throw() { return( muUnits.muiUnits  <  muiUnits          ); }
-   friend bool operator  <( typename const MUnit< tMemClass >& muUnitsL, typename const MUnit< tMemClass >& muUnitsR ) throw() { return( muUnitsL.muiUnits <  muUnitsR.muiUnits ); }
-
-
-   friend bool operator  >(          const MUI                 muiUnits, typename const MUnit< tMemClass >& muUnits  ) throw() { return( muiUnits          >  muUnits.muiUnits  ); }
-   friend bool operator  >( typename const MUnit< tMemClass >& muUnits,           const MUI                 muiUnits ) throw() { return( muUnits.muiUnits  >  muiUnits          ); }
-   friend bool operator  >( typename const MUnit< tMemClass >& muUnitsL, typename const MUnit< tMemClass >& muUnitsR ) throw() { return( muUnitsL.muiUnits >  muUnitsR.muiUnits ); }
-
-
-   friend bool operator <=(          const MUI                 muiUnits, typename const MUnit< tMemClass >& muUnits  ) throw() { return( muiUnits          <= muUnits.muiUnits  ); }
-   friend bool operator <=( typename const MUnit< tMemClass >& muUnits,           const MUI                 muiUnits ) throw() { return( muUnits.muiUnits  <= muiUnits          ); }
-   friend bool operator <=( typename const MUnit< tMemClass >& muUnitsL, typename const MUnit< tMemClass >& muUnitsR ) throw() { return( muUnitsL.muiUnits <= muUnitsR.muiUnits ); }
-
-
-   friend bool operator >=(          const MUI                 muiUnits, typename const MUnit< tMemClass >& muUnits  ) throw() { return( muiUnits          >= muUnits.muiUnits  ); }
-   friend bool operator >=( typename const MUnit< tMemClass >& muUnits,           const MUI                 muiUnits ) throw() { return( muUnits.muiUnits  >= muiUnits          ); }
-   friend bool operator >=( typename const MUnit< tMemClass >& muUnitsL, typename const MUnit< tMemClass >& muUnitsR ) throw() { return( muUnitsL.muiUnits >= muUnitsR.muiUnits ); }
-
-
-   friend bool operator ==(          const MUI                 muiUnits, typename const MUnit< tMemClass >& muUnits  ) throw() { return( muiUnits          == muUnits.muiUnits  ); }
-   friend bool operator ==( typename const MUnit< tMemClass >& muUnits,           const MUI                 muiUnits ) throw() { return( muUnits.muiUnits  == muiUnits          ); }
-   friend bool operator ==( typename const MUnit< tMemClass >& muUnitsL, typename const MUnit< tMemClass >& muUnitsR ) throw() { return( muUnitsL.muiUnits == muUnitsR.muiUnits ); }
-
-
-   friend bool operator !=(          const MUI                 muiUnits, typename const MUnit< tMemClass >& muUnits  ) throw() { return( muiUnits          != muUnits.muiUnits  ); }
-   friend bool operator !=( typename const MUnit< tMemClass >& muUnits,           const MUI                 muiUnits ) throw() { return( muUnits.muiUnits  != muiUnits          ); }
-   friend bool operator !=( typename const MUnit< tMemClass >& muUnitsL, typename const MUnit< tMemClass >& muUnitsR ) throw() { return( muUnitsL.muiUnits != muUnitsR.muiUnits ); }
+  Heap = 0,
+  GlobalAllocFree = 1,
+  VariableUnidentifiable = 2
 };
 
 
@@ -345,11 +83,6 @@ template< class tMemClass > class ShellMemory;
 template< class tMemClass >
 class MAtom
 {
-   template< class tMemClass > friend class MemoryPH;
-   template< class tChar >     friend class MStringEx;
-   template< class tMemClass > friend class MAtom;
-
-
 protected:
    tMemClass*         pData;
    MUnit< tMemClass > muSize;
@@ -369,7 +102,7 @@ public:
    }
 
 
-   MAtom( tMemClass *pSrcData, typename const MUnit< tMemClass >& muUnits ) : pData( pSrcData ), muSize( muUnits )
+   MAtom( tMemClass *pSrcData, const MUnit< tMemClass >& muUnits ) : pData( pSrcData ), muSize( muUnits )
    {
       MAtomException::TestNonNullPointer( pSrcData );
    }
@@ -382,7 +115,7 @@ public:
 
    MAtom( MAtom< tMemClass >& maSource, const MUnit< tMemClass >& muOffset, const MUnit< tMemClass >& muUnits )
    {
-      MAtomException::TestSourceMemorySpace< tMemClass >( muOffset, muSize, maSource.GetSize() );
+      MAtomException::TestSourceMemorySpace< tMemClass >( muOffset, muUnits, maSource.GetSize() );
 
       pData  = &maSource[muOffset];
       muSize = muUnits;
@@ -395,19 +128,20 @@ public:
 
 
    // Replace the content of the memory atom with that of the parameter.
-   virtual MAtom< tMemClass >& operator=( typename const MAtom< tMemClass >& maSource ) = 0;
-
-
-   enum MemoryOrigin
-   {
-      Heap,
-      GlobalAllocFree,
-      VariableUnidentifiable
-   };
+   virtual MAtom< tMemClass >& operator=( const MAtom< tMemClass >& maSource ) = 0;
 
 
    // Pure polymorphic method. Returns the Memory Origin.
+#ifdef _WIN32
    virtual MemoryOrigin GetMemoryOrigin() const = 0;
+#else
+   virtual int GetMemoryOrigin() const = 0;
+#endif
+
+
+   virtual MUI GetDimensionsCount() const = 0;
+   virtual MUnit< tMemClass > Width() const = 0;
+   virtual MUnit< tMemClass > Height() const = 0;
 
    
    // Pure polymorphic method. Returns true if the memory atom is able to (re)allocate memory, and false if not.
@@ -420,24 +154,24 @@ public:
    void ExchangeMemory( MAtom< tMemClassSwap >& memorySwapWith )
    {
       MAtomException::TestCompatibleCall( memorySwapWith.GetMemoryOrigin() == GetMemoryOrigin() );
-      MAtomException::TestCompatibleCall( memorySwapWith.CanItBe< tMemClass >() && CanItBe< tMemClassSwap >() );
+      MAtomException::TestCompatibleCall( memorySwapWith.template CanItBe< tMemClass >() && CanItBe< tMemClassSwap >() );
 
       tMemClassSwap* pThis           = (tMemClassSwap*)pData;
       pData                          = (tMemClass*)memorySwapWith.GetMemory();
       *memorySwapWith.GetMemoryPtr() = pThis;
 
       MUnit< tMemClass > muThis    = muSize;
-      muSize                       = memorySwapWith.GetSize().As< tMemClass >();
-      *memorySwapWith.GetSizePtr() = muThis.As< tMemClassSwap >();
+      muSize                       = memorySwapWith.GetSize().template As< tMemClass >();
+      *memorySwapWith.GetSizePtr() = muThis.template As< tMemClassSwap >();
    }
 
 
    // Pure polymorphic method. Returns true if the memory atom is empty, and false otherwise.
-   virtual bool IsEmpty() const throw( MAtomException ) { return( 0 == muSize.GetUnits() ); }
+   virtual bool IsEmpty() const DECLARE_THROW( MAtomException ) { return( 0 == muSize.GetUnits() ); }
 
 
    // Pure polymorphic method. Empties the memory atom from any contained memory.
-   virtual MAtom< tMemClass >& Empty() throw( MAtomException ) = 0;
+   virtual MAtom< tMemClass >& Empty() DECLARE_THROW( MAtomException ) = 0;
 
 
    // Returns the size of the memory contained by the atom memory it memory units.
@@ -458,22 +192,6 @@ public:
    static size_t GetClassSize() throw()
    {
       return( sizeof( tMemClass ) );
-   }
-
-
-   // Compare two memory atoms to see if they have the same content byte by byte.
-   // Returns true if the atoms are identical and false otherwise.
-   virtual bool operator==( const MAtom< tMemClass >& mtAtom ) const throw()
-   {
-      return( (mtAtom.muSize == muSize) && (0 == memcmp( pData, mtAtom.pData, muSize.InBytes() )) );
-   }
-
-
-   // Compare two memory atoms to see if they have different content byte by byte.
-   // Returns true if the atoms have different content and false otherwise.
-   virtual bool operator!=( const MAtom< tMemClass >& mtAtom ) const throw()
-   {
-      return( !operator==( mtAtom ) );
    }
 
 
@@ -500,43 +218,7 @@ public:
 
 
    // Indexer returning reference to a unit contained in the memory atom. 
-   tMemClass& operator[]( const int iIndex ) throw( MAtomException )
-   {
-      MAtomException::TestInRangeZero2UpperLimit< true, false >( iIndex, GetSize().GetUnits() );
-
-      return( pData[(MUI)iIndex] );
-   }
-
-
-   // Indexer returning reference to a unit contained in the memory atom. 
-   const tMemClass& operator[]( const int iIndex ) const throw( MAtomException )
-   {
-      MAtomException::TestInRangeZero2UpperLimit< true, false >( iIndex, GetSize().GetUnits() );
-      
-      return( pData[(MUI)iIndex] );
-   }
-
-
-   // Indexer returning reference to a unit contained in the memory atom. 
-   tMemClass& operator[]( const unsigned long iIndex ) throw( MAtomException )
-   {
-      MAtomException::TestInRangeZero2UpperLimit< true, false >( iIndex, GetSize().GetUnits() );
-            
-      return( pData[(MUI)iIndex] );
-   }
-
-
-   // Indexer returning reference to a unit contained in the memory atom. 
-   const tMemClass& operator[]( const unsigned long iIndex ) const throw( MAtomException )
-   {
-      MAtomException::TestInRangeZero2UpperLimit< true, false >( iIndex, GetSize().GetUnits() );
-      
-      return( pData[(MUI)iIndex] );
-   }
-
-
-   // Indexer returning reference to a unit contained in the memory atom. 
-   tMemClass& operator[]( const MUI muiIndex ) throw( MAtomException )
+   tMemClass& operator[]( const MUI muiIndex ) DECLARE_THROW( MAtomException )
    {
       MAtomException::TestInRangeZero2UpperLimit< true, false >( muiIndex, GetSize().GetUnits() );
       
@@ -545,7 +227,7 @@ public:
 
 
    // Indexer returning reference to a unit contained in the memory atom. 
-   const tMemClass& operator[]( const MUI muiIndex ) const throw( MAtomException )
+   const tMemClass& operator[]( const MUI muiIndex ) const DECLARE_THROW( MAtomException )
    {
       MAtomException::TestInRangeZero2UpperLimit< true, false >( muiIndex, GetSize().GetUnits() );
       
@@ -554,7 +236,7 @@ public:
 
    
    // Indexer returning reference to a unit contained in the memory atom. 
-   tMemClass& operator[]( typename const MUnit< tMemClass >& muIndex ) throw( MAtomException )
+   tMemClass& operator[]( const MUnit< tMemClass >& muIndex ) DECLARE_THROW( MAtomException )
    {
       MAtomException::TestInRangeZero2UpperLimit< true, false >( muIndex.GetUnits(), GetSize().GetUnits() );
       
@@ -563,7 +245,7 @@ public:
    
    
    // Indexer returning reference to a unit contained in the memory atom. 
-   const tMemClass& operator[]( typename const MUnit< tMemClass >& muIndex ) const throw( MAtomException )
+   const tMemClass& operator[]( const MUnit< tMemClass >& muIndex ) const DECLARE_THROW( MAtomException )
    {
       MAtomException::TestInRangeZero2UpperLimit< true, false >( muIndex.GetUnits(), GetSize().GetUnits() );
       
@@ -572,26 +254,50 @@ public:
 
 
    // Wraps number of units inside a memory atom and returns a shell memory atom containing them.
-   // const MUnit< tMemType >& muFrom – starting memory unit, zero based index.
-   // const MUnit< tmCast >& muSize   - number of units to be included in the new memory atom
+   // const MUnit< tMemClass >& muFrom - starting memory unit, zero based index.
+   // const MUnit< tmCast >& muSize    - number of units to be included in the new memory atom.
    // Return ShellMemory atom referencing the requested number of memory units in the source (this) memory atom starting from the appointed position.
-   template< class tmCast > ShellMemory< tmCast > SubMemory( typename const MUnit< tMemClass >& muFrom, typename const MUnit< tmCast >& muSize ) const throw( MAtomException )
+   template< class tmCast > ShellMemory< tmCast > SubMemory( const MUnit< tMemClass >& muFrom, const MUnit< tmCast >& muSize ) const DECLARE_THROW( MAtomException )
    {
-      MAtomException::TestSourceMemorySpace< tMemClass >( muFrom, muSize.As< tMemClass >(), GetSize() );
+      MAtomException::TestSourceMemorySpace< tMemClass >( muFrom, muSize.template As< tMemClass >(), GetSize() );
 
       return( ShellMemory< tmCast >( (tmCast*)((MUI)pData + muFrom.InBytes()), muSize ) );
    }
 
 
    // Wraps number of units inside a memory atom and returns a shell memory atom containing them.
-   // const MUnit< tMemType >& muFrom – starting memory unit, zero based index.
-   // const MUnit< tmCast >& muSize   - number of units to be included in the new memory atom
+   // const MUnit< tMemClass >& muFrom - starting memory unit, zero based index.
+   // const MUnit< tmCast >& muSize    - number of units to be included in the new memory atom.
    // Return ShellMemory atom referencing the requested number of memory units in the source (this) memory atom starting from the appointed position.
-   template< class tmCast > ShellMemory< tmCast > SubMemory( typename const MUnit< tMemClass >& muFrom, typename const MUnit< tmCast >& muSize ) throw( MAtomException )
+   template< class tmCast > ShellMemory< tmCast > SubMemory( const MUnit< tMemClass >& muFrom, const MUnit< tmCast >& muSize ) DECLARE_THROW( MAtomException )
    {
-      MAtomException::TestSourceMemorySpace< tMemClass >( muFrom, muSize.As< tMemClass >(), GetSize() );
+      MAtomException::TestSourceMemorySpace< tMemClass >( muFrom, muSize.template As< tMemClass >(), GetSize() );
 
       return( ShellMemory< tmCast >( (tmCast*)((MUI)pData + muFrom.InBytes()), muSize ) );
+   }
+
+
+   // Wraps number of units inside a memory atom and returns a shell memory atom containing them.
+   // const MUnit< tMemClass >& muFrom - starting memory unit, zero based index.
+   // const MUnit< tMemClass >& muSize - number of units to be included in the new memory atom.
+   // Return ShellMemory atom referencing the requested number of memory units in the source (this) memory atom starting from the appointed position.
+   ShellMemory< tMemClass > Span( const MUnit< tMemClass >& muFrom, const MUnit< tMemClass >& muSize ) const DECLARE_THROW( MAtomException )
+   {
+      MAtomException::TestSourceMemorySpace< tMemClass >( muFrom, muSize.template As< tMemClass >(), GetSize() );
+
+      return( ShellMemory< tMemClass >( (tMemClass*)((MUI)pData + muFrom.InBytes()), muSize ) );
+   }
+
+
+   // Wraps number of units inside a memory atom and returns a shell memory atom containing them.
+   // const MUnit< tMemClass >& muFrom - starting memory unit, zero based index.
+   // const MUnit< tMemClass >& muSize - number of units to be included in the new memory atom.
+   // Return ShellMemory atom referencing the requested number of memory units in the source (this) memory atom starting from the appointed position.
+   ShellMemory< tMemClass > Span( const MUnit< tMemClass >& muFrom, const MUnit< tMemClass >& muSize ) DECLARE_THROW( MAtomException )
+   {
+      MAtomException::TestSourceMemorySpace< tMemClass >( muFrom, muSize.template As< tMemClass >(), GetSize() );
+
+      return( ShellMemory< tMemClass >( (tMemClass*)((MUI)pData + muFrom.InBytes()), muSize ) );
    }
 
 
@@ -633,23 +339,39 @@ public:
 
 
    // Cast (specialize) the memory atom with another class. Returns a shell memory atom classed (specialized) with the new cast type.
-   template< class tmCast > ShellMemory< tmCast > ClassAs() throw( MAtomException )
+   template< class tmCast > ShellMemory< tmCast > ClassAs() DECLARE_THROW( MAtomException )
    {
-      return( ShellMemory< tmCast >( (tmCast*)pData, muSize.As< tmCast >() ) );
+      return( ShellMemory< tmCast >( (tmCast*)pData, muSize.template As< tmCast >() ) );
    }
 
 
    // Cast (specialize) the memory atom with another class. Returns a constant shell memory atom classed (specialized) with the new cast type.
-   template< class tmCast > const ShellMemory< tmCast > ClassAs() const throw( MAtomException )
+   template< class tmCast > const ShellMemory< tmCast > ClassAs() const DECLARE_THROW( MAtomException )
    {
-      return( ShellMemory< tmCast >( (tmCast*)pData, muSize.As< tmCast >() ) );
+      return( ShellMemory< tmCast >( (tmCast*)pData, muSize.template As< tmCast >() ) );
+   }
+
+
+   ShellMemory< tMemClass > GetShellRow( const MUnit< tMemClass > muRow ) DECLARE_THROW( MAtomException )
+   {
+      MAtomException::TestCompatibleCall( muRow < Height() );
+
+      return( ShellMemory< tMemClass >( (tMemClass*)&pData[(muRow * Width()).GetUnits()], Width() ) );
+   }
+
+
+   const ShellMemory< tMemClass > GetShellRow( const MUnit< tMemClass > muRow ) const DECLARE_THROW( MAtomException )
+   {
+      MAtomException::TestCompatibleCall( muRow < Height() );
+
+      return( ShellMemory< tMemClass >( (tMemClass*)&pData[(muRow * Width()).GetUnits()], Width() ) );
    }
 
 
    // Cast (specialize) the memory atom with another class. Returns a shell memory atom classed (specialized) with the new cast type.
    // const MUnit< tMemClass > muOffsetThis - the beginning of the memory referenced by the returned shell memory atom in the units of the referenced (this) memory atom.
    // const MUnit< tmCast >    muUnitsCast  - the size of the memory referenced in the returned shell memory atom in memory units of the returned shell memory atom.
-   template< class tmCast > ShellMemory< tmCast > ClassAs( typename const MUnit< tMemClass > muOffsetThis, typename const MUnit< tmCast > muUnitsCast ) throw( MAtomException )
+   template< class tmCast > ShellMemory< tmCast > ClassAs( const MUnit< tMemClass > muOffsetThis, const MUnit< tmCast > muUnitsCast ) DECLARE_THROW( MAtomException )
    {
       MAtomException::TestSourceMemorySpaceCast< tMemClass, tmCast >( muOffsetThis, muUnitsCast, GetSize() );
 
@@ -660,7 +382,7 @@ public:
    // Cast (specialize) the memory atom with another class. Returns a constant shell memory atom classed (specialized) with the new cast type.
    // const MUnit< tMemClass > muOffsetThis - the beginning of the memory referenced by the returned shell memory atom in the units of the referenced (this) memory atom.
    // const MUnit< tmCast >   muUnitsCast  - the size of the memory referenced in the returned shell memory atom in memory units of the returned shell memory atom.
-   template< class tmCast > const ShellMemory< tmCast > ClassAs( typename const MUnit< tMemClass > muOffsetThis, typename const MUnit< tmCast > muUnitsCast ) const throw( MAtomException )
+   template< class tmCast > const ShellMemory< tmCast > ClassAs( const MUnit< tMemClass > muOffsetThis, const MUnit< tmCast > muUnitsCast ) const DECLARE_THROW( MAtomException )
    {
       MAtomException::TestSourceMemorySpaceCast< tMemClass, tmCast >( muOffsetThis, muUnitsCast, GetSize() );
 
@@ -671,12 +393,12 @@ public:
    // Test if a memory atom as a whole can be casted directly with another memory class.
    template< class tmCast > bool CanItBe() const throw()
    {
-      return( muSize.CanItBe< tmCast >() );
+      return( muSize.template CanItBe< tmCast >() );
    }
 
 
    // Pure polymorphic method. Release the contained memory and allocate the new requested amount. Not all types of memory atoms are able to re-allocate memory.
-   virtual MAtom< tMemClass >& ReAllocate( typename const MUnit< tMemClass >& muUnits ) throw( MAtomException ) = 0;
+   virtual MAtom< tMemClass >& ReAllocate( const MUnit< tMemClass >& muUnits ) DECLARE_THROW( MAtomException ) = 0;
 
 
    // Copy part or the entire memory content of the passed memory atom to the memory contained in this memory atom. Memory is copied in a byte by byte fashion.
@@ -687,12 +409,12 @@ public:
    // const bool bUpdateOffsetSource       - indicates whether muOffsetSource will be updated after successful data transfer with the number of copied memory units.
    // const MUnit< tMemClass >& muTransfer - indicates the number of memory units to be copied from the source memory atom to this (target) one.
    // There must be enough memory in both the source and target memory atoms for the request to be completed. The return value is reference to this (target) memory atom.
-   virtual MAtom< tMemClass >& Transfer( typename MUnit< tMemClass >& muOffsetThis,
-                                         const bool bUpdateOffsetThis,
-                                         typename const MAtom< tMemClass >& maSource,
-                                         typename MUnit< tMemClass >& muOffsetSource,
-                                         const bool bUpdateOffsetSource,
-                                         typename const MUnit< tMemClass >& muTransfer ) throw( MAtomException )
+   virtual MAtom< tMemClass >& Transfer( MUnit< tMemClass >&       muOffsetThis,
+                                         const bool                bUpdateOffsetThis,
+                                         const MAtom< tMemClass >& maSource,
+                                         MUnit< tMemClass >&       muOffsetSource,
+                                         const bool                bUpdateOffsetSource,
+                                         const MUnit< tMemClass >& muTransfer ) DECLARE_THROW( MAtomException )
    {
       if( 0 != muTransfer )
       {
@@ -716,10 +438,10 @@ public:
    // const bool bUpdateOffsetSource       - indicates whether muOffsetSource will be updated after successful data transfer with the number of copied memory units.
    // const MUnit< tMemClass >& muTransfer - indicates the number of memory units to be copied from the source memory atom to this (target) one.
    // There must be enough memory in both the source and target memory atoms for the request to be completed. The return value is reference to this (target) memory atom.
-   virtual MAtom< tMemClass >& Transfer( typename const MAtom< tMemClass >& maSource,
-                                         typename MUnit< tMemClass >& muOffsetSource,
-                                         const bool bUpdateOffsetSource,
-                                         typename const MUnit< tMemClass >& muTransfer ) throw( MAtomException )
+   virtual MAtom< tMemClass >& Transfer( const MAtom< tMemClass >& maSource,
+                                         MUnit< tMemClass >&       muOffsetSource,
+                                         const bool                bUpdateOffsetSource,
+                                         const MUnit< tMemClass >& muTransfer ) DECLARE_THROW( MAtomException )
    {
       MUnit< tMemClass > muOffsetThis( 0 );
       const bool bUpdateOffsetThis( false );
@@ -734,10 +456,10 @@ public:
    // const MAtom< tMemClass >& maSource   - source memory atom. 
    // const MUnit< tMemClass >& muTransfer - indicates the number of memory units to be copied from the source memory atom to this (target) one.
    // There must be enough memory in both the source and target memory atoms for the request to be completed. The return value is reference to this (target) memory atom.
-   virtual MAtom< tMemClass >& Transfer( typename MUnit< tMemClass >& muOffsetThis,
-                                         const bool bUpdateOffsetThis,
-                                         typename const MAtom< tMemClass >& maSource,
-                                         typename const MUnit< tMemClass >& muTransfer ) throw( MAtomException )
+   virtual MAtom< tMemClass >& Transfer( MUnit< tMemClass >&       muOffsetThis,
+                                         const bool                bUpdateOffsetThis,
+                                         const MAtom< tMemClass >& maSource,
+                                         const MUnit< tMemClass >& muTransfer ) DECLARE_THROW( MAtomException )
    {
       MUnit< tMemClass > muOffsetSource( 0 );
       const bool bUpdateOffsetSource( false );
@@ -750,7 +472,7 @@ public:
    // MUnit< tMemClass >& muOffsetThis   - indicates the offset from where the new data will be written in units of (this) to the target memory atom.
    // const MAtom< tMemClass >& maSource - source memory atom. 
    // There must be enough memory in the target memory atom for the request to be completed. The return value is reference to this (target) memory atom.
-   virtual MAtom< tMemClass >& Transfer( typename MUnit< tMemClass > muOffsetThis, typename const MAtom< tMemClass >& maSource ) throw( MAtomException )
+   virtual MAtom< tMemClass >& Transfer( MUnit< tMemClass > muOffsetThis, const MAtom< tMemClass >& maSource ) DECLARE_THROW( MAtomException )
    {
       if( 0 != maSource.GetSize() )
       {
@@ -768,7 +490,7 @@ public:
    // const bool bUpdateOffsetThis       - indicates whether muOffsetThis will be updated after successful data transfer with the number of copied memory units.
    // const MAtom< tMemClass >& maSource - source memory atom. 
    // There must be enough memory in the target memory atom for the request to be completed. The return value is reference to this (target) memory atom.
-   virtual MAtom< tMemClass >& Transfer( typename MUnit< tMemClass >& muOffsetThis, const bool bUpdateOffsetThis, typename const MAtom< tMemClass >& maSource ) throw( MAtomException )
+   virtual MAtom< tMemClass >& Transfer( MUnit< tMemClass >& muOffsetThis, const bool bUpdateOffsetThis, const MAtom< tMemClass >& maSource ) DECLARE_THROW( MAtomException )
    {
       if( 0 != maSource.GetSize() )
       {
@@ -787,7 +509,7 @@ public:
    // Sequentially copy the entire memory content of the passed memory atom to the memory contained by the target (this), starting at their beginnings.
    // ShellMemory< tMemClass >& maSource - source memory atom. 
    // Both memory atoms must have the same size in order for the request to be completed. The return value is reference to this (target) memory atom.
-   virtual MAtom< tMemClass >& Transfer( typename const MAtom< tMemClass >& maSource ) throw( MAtomException )
+   virtual MAtom< tMemClass >& Transfer( const MAtom< tMemClass >& maSource ) DECLARE_THROW( MAtomException )
    {
       if( 0 != maSource.GetSize() )
       {
@@ -808,10 +530,10 @@ public:
    // const MUnit< tMemClass >  muOffsetSource - indicates the offset from where to begin the data transfer in the source memory atom in its own units.
    // const MUnit< tMemClass >  muTransfer     - indicates the number of memory units to be copied from the source memory atom to this (target) one.
    // There must be enough memory in both the source and target memory atoms for the request to be completed. The return value is reference to this (target) memory atom.
-   virtual MAtom< tMemClass >& Transfer( typename const MUnit< tMemClass >  muOffsetThis,
-                                         typename const MAtom< tMemClass >& maSource,
-                                         typename const MUnit< tMemClass >  muOffsetSource,
-                                         typename const MUnit< tMemClass >  muTransfer ) throw( MAtomException )
+   virtual MAtom< tMemClass >& Transfer( const MUnit< tMemClass >  muOffsetThis,
+                                         const MAtom< tMemClass >& maSource,
+                                         const MUnit< tMemClass >  muOffsetSource,
+                                         const MUnit< tMemClass >  muTransfer ) DECLARE_THROW( MAtomException )
    {
       if( 0 != muTransfer )
       {
@@ -827,17 +549,18 @@ public:
 
    // Pure polymorphic method. Release contained memory, allocate new memory with the size of the passed memory atom and copy its content to the newly allocated memory 
    // of the target (this). Not all types of memory atoms are able to re-allocate memory and thus some types of memory atoms may always throw exception from this method.
-   // const MAtom< tMemType >& maSource – size of the new memory to allocate in memory units.
+   // const MAtom< tMemClass >& maSource - size of the new memory to allocate in memory units.
    // Returns reference to the modified this memory atom.
-   virtual MAtom< tMemClass >& ReAllocateTransfer( typename const MAtom< tMemClass >& maSource )    throw( MAtomException ) = 0;
+   virtual MAtom< tMemClass >& ReAllocateTransfer( const MAtom< tMemClass >& maSource )    DECLARE_THROW( MAtomException ) = 0;
 
 
+#ifdef _WIN32
    // Load resource in the memory atom from the hDefaultTextResourceModule module. The HMODULE hDefaultTextResourceModule must be defined in a cpp file and 
    // loaded with a valid module handle (or set to null to load the resource from the current executable module) from which the resource will be loaded.
    // const TCHAR* strType - resource type.
    // const DWORD dwName   - resource name.
    // The function returns reference to this with the loaded resource. The function throws an exception if an invalid call is made, and returns an empty object if it fails to load the resource.
-   virtual MAtom< tMemClass >& LoadResource( const TCHAR* strType, const DWORD dwName ) throw( MAtomException );
+   virtual MAtom< tMemClass >& LoadResource( const TCHAR* strType, const DWORD dwName ) DECLARE_THROW( MAtomException );
 
 
    // Load resource in the memory atom from the hDefaultTextResourceModule module. The HMODULE hDefaultTextResourceModule must be defined in a cpp file and 
@@ -846,7 +569,7 @@ public:
    // const TCHAR* strType   - resource type.
    // const DWORD dwName     - resource name.
    // The function returns reference to this with the loaded resource. The function throws an exception if an invalid call is made, and returns an empty object if it fails to load the resource.
-   virtual MAtom< tMemClass >& LoadResource( const TCHAR* strModule, const TCHAR* strType, const DWORD dwName ) throw( MAtomException );
+   virtual MAtom< tMemClass >& LoadResource( const TCHAR* strModule, const TCHAR* strType, const DWORD dwName ) DECLARE_THROW( MAtomException );
 
 
    // Load resource in the memory atom from the hDefaultTextResourceModule module. The HMODULE hDefaultTextResourceModule must be defined in a cpp file and 
@@ -855,7 +578,7 @@ public:
    // const TCHAR* strType  - resource type.
    // const DWORD dwName    - resource name.
    // The function returns reference to this with the loaded resource. The function throws an exception if an invalid call is made, and returns an empty object if it fails to load the resource.
-   virtual MAtom< tMemClass >& LoadResource( const HMODULE hModule, const TCHAR* strType, const DWORD dwName ) throw( MAtomException );
+   virtual MAtom< tMemClass >& LoadResource( const HMODULE hModule, const TCHAR* strType, const DWORD dwName ) DECLARE_THROW( MAtomException );
 
 
    // Store the memory atom content as a resource in a module. The calling process must have sufficient rights to write in the module, and the module must be available for writing.
@@ -867,6 +590,7 @@ public:
    // const BOOL bDeleteExistingResources - "true" deletes any existing resource with the specified name; "false" leaves existing resources intact unless they are overwritten.
    // The function returns true if the request is processed successfully and false in case of failure. Use GetLastError() or string( string::eGetSystemError ) to review the error occurred.
    virtual bool StoreResource( LPCTSTR strModule, LPCTSTR strType, const DWORD dwName, const USHORT usLanguage, const USHORT usSubLanguage, const BOOL bDeleteExistingResources ) const;
+#endif
 
 
    // Move the contained memory up/down a memory stream. This method is meaningful only for memory types which represent a memory segment within a stream, such as the ShellMemory memory type.
@@ -874,12 +598,12 @@ public:
    // const bool bPositiveDirection      - true makes the beginning of the "window" move towards the end of the stream, and false towards the beginning.
    // const bool bConstantSize           - true maintains the size of the memory contained by the memory atom constant, while false shrinks/expands the contained memory with muOffset.
    // The function returns a reference to the modified memory atom ("window") in the other stream. The function throws exception in case of invalid call as usual.
-   virtual MAtom< tMemClass >& Offset( typename const MUnit< tMemClass >& muOffset, const bool bPositiveDirection, const bool bConstantSize ) throw( MAtomException );
+   virtual MAtom< tMemClass >& Offset( const MUnit< tMemClass >& muOffset, const bool bPositiveDirection, const bool bConstantSize ) DECLARE_THROW( MAtomException );
 
 
    // Decreases the number of the contained memory units to the muSize passed as parameter.
    // The function returns a reference to the modified memory atom.
-   virtual MAtom< tMemClass >& LimitSizeTo( typename const MUnit< tMemClass >& muSize ) throw( MAtomException );
+   virtual MAtom< tMemClass >& LimitSizeTo( const MUnit< tMemClass >& muSize ) DECLARE_THROW( MAtomException );
 
 
    // Writes the content of the memory held by the memory atom at the beginning of the opened file represented with the hFile handle. The method returns retaining
@@ -970,7 +694,7 @@ public:
    // (from the current pointer position to the end of the file) to fill up the memory atom, then the memory atom will adjust itself to reflect the amount of data available. The available 
    // data must be multiple to the granularity of the memory atom. For example a file with size 6 bytes, and handle pointer at 3, cannot be loaded in memory atom of class DWORD.
    // The function returns reference to this memory atom loaded with the data from the file.
-   virtual MAtom< tMemClass >& LoadFromFile( const MHandle& hFile ) throw( MAtomException );
+   virtual MAtom< tMemClass >& LoadFromFile( const MHandle& hFile ) DECLARE_THROW( MAtomException );
 
 
    // Fill the content of the memory atom with random data.
@@ -1003,16 +727,22 @@ public:
    MAtom< tMemClass >& XOR( const tMemClass& mtXORUnit )                         throw();
 
 
+   // Unit-wise ADD of this memory atom and a memory unit of the same type, with result of every per-unit ADD saved in this.
+   // const tMemClass& mtXORUnit - memory unit to ADD this. The operation is this-atom[index] = this-atom[index] ADD mtADDUnit
+   // The function returns reference to this memory atom unit-wise ADD-ed with mtADDUnit.
+   MAtom< tMemClass >& ADD( const tMemClass& mtADDUnit )                         throw();
+
+
    // Fill the content of a memory atom with the value.
    // const tMemClass& objPattern - value used to set every unit in the memory atom.
    // The function returns reference to this memory atom filled with objPattern.
-   MAtom< tMemClass >& Set( typename const tMemClass& objPattern ) throw();
+   MAtom< tMemClass >& Set( const tMemClass& objPattern ) throw();
 
 
    // Byte-wise fill the content of a memory atom with the value.
    // const BYTE b1Wipe - byte value used to set every byte in the memory atom to. Every byte of the contained memory is set to this value.
    // The function returns reference to this memory atom filled with b1Wipe.
-   MAtom< tMemClass >& Reset( typename const BYTE b1Wipe )        throw();
+   MAtom< tMemClass >& Reset( const BYTE b1Wipe )        throw();
 
 
    // Unit-wise reversing of the content of the memory atom.
@@ -1057,7 +787,7 @@ public:
    // If the partial flag is set to true and there is a partial match at the end of the memory, there may be a full match is there is more data behind the end of the memory 
    // atom, so the method will return a partial match, i.e. a shell memory atom wrapping the memory from the beginning of the match to the end of the memory in this atom.
    // To distinguish a full from a partial match use the size of the returned shell memory atom and memSearchFor.
-   const ShellMemory< tMemClass > Search_L2R( typename const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd ) const;
+   const ShellMemory< tMemClass > Search_L2R( const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd ) const;
 
 
    // Search for a memory match in this memory atom from left to right (from the beginning towards the end). This method is applicable only for memory atoms with class sizes of only one or two bytes.
@@ -1069,7 +799,7 @@ public:
    // If the partial flag is set to true and there is a partial match at the end of the memory, there may be a full match is there is more data behind the end of the memory 
    // atom, so the method will return a partial match, i.e. a shell memory atom wrapping the memory from the beginning of the match to the end of the memory in this atom.
    // To distinguish a full from a partial match use the size of the returned shell memory atom and memSearchFor.
-   const ShellMemory< tMemClass > Search_L2R( typename const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd, const bool bCaseSensitive ) const;
+   const ShellMemory< tMemClass > Search_L2R( const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd, const bool bCaseSensitive ) const;
 
 
    // Find this memory atom content in a file.
@@ -1079,15 +809,6 @@ public:
    // const HANDLE heStop                 - synchronization event handle to asynchronously terminate the search.
    // Returns true if the file contains data identical to the content of this memory atom, and false if a match was not found.
    bool  FindInFile( const MHandle& hFile, const unsigned __int64 uiSearchFrom, unsigned __int64* puiFoundAt, const HANDLE heStop ) const;
-
-
-   // Encode the content of the memory atom as ASCII in chars. Every byte is split to more/less significant 4 bits, which number is converted to ASCII. For example ABCD\0,
-   // i.e. 0x41 0x42 0x43 0x44 0x00 becomes 0x34 0x31 0x34 0x32 0x34 0x33 0x34 0x34 0x30 0x30. The function returns a new memory atom with the encoded data from this.
-   MemoryPH< char >   Bin2Ascii() const;
-
-
-   // Decode ASCII encoded binary data. This function is inverse of MemoryPH< char > Bin2Ascii() const;.
-   MAtom< tMemClass >& Ascii2Bin();
 
 
    // Creates and returns an 8 byte integer hash code for the content of the memory atom.
@@ -1107,9 +828,9 @@ class MemoryPH : public MAtom< tMemClass >
 protected:
    void AllocateMemorySize()
    {
-      pData = new tMemClass[muSize.GetUnits()];
+      this->pData = new tMemClass[this->muSize.GetUnits()];
 
-      if( nullptr == pData )
+      if( nullptr == this->pData )
       {
          MAtomException::ExceptionInsufficientMemory();
       }
@@ -1117,11 +838,29 @@ protected:
 
 
 public:
-   // Pure polymorphic method.
-   // Returns the Memory Origin.
-   virtual MemoryOrigin GetMemoryOrigin() const
+   // Returns the memory origin.
+#ifdef _WIN32
+   virtual MemoryOrigin GetMemoryOrigin() const { return( Heap ); }
+#else
+   virtual int GetMemoryOrigin() const { return( 0 ); }
+#endif
+
+
+   virtual MUI GetDimensionsCount() const
    {
-      return( Heap );
+      return( 1 );
+   }
+
+
+   virtual MUnit< tMemClass > Width() const
+   {
+      return( this->muSize );
+   }
+
+
+   virtual MUnit< tMemClass > Height() const
+   {
+      return( MUnit< tMemClass >( 1 ) );
    }
 
 
@@ -1135,26 +874,26 @@ public:
    // Standard copy constructor - creates a new memory object using the source object.
    // const MemoryPH< tMemClass >& maSource - source memory atom used to construct this object.
    // The constructor allocates exactly as much memory as maSource holds and copies its content onto the newly allocated memory.
-   MemoryPH( typename const MemoryPH< tMemClass >& maSource )
+   MemoryPH( const MemoryPH< tMemClass >& maSource )
    {
-      muSize = maSource.muSize;
+      this->muSize = maSource.muSize;
 
       AllocateMemorySize();
 
-      memcpy( pData, maSource.pData, muSize.InBytes() );
+      memcpy( this->pData, maSource.pData, this->muSize.InBytes() );
    }
 
 
    // Copy constructor from any MAtom< tMemClass > descendent memory atom type - creates a new memory object using the source object.
    // const MAtom< tMemClass >& maSource - source memory atom used to construct this object.
    // The constructor allocates exactly as much memory as maSource holds and copies its content onto the newly allocated memory.
-   MemoryPH( typename const MAtom< tMemClass >& maSource )
+   MemoryPH( const MAtom< tMemClass >& maSource )
    {
-      muSize = maSource.GetSize();
+      this->muSize = maSource.GetSize();
 
       AllocateMemorySize();
 
-      memcpy( pData, maSource.GetMemory(), muSize.InBytes() );
+      memcpy( this->pData, maSource.GetMemory(), this->muSize.InBytes() );
    }
 
 
@@ -1162,9 +901,9 @@ public:
    // const MUnit< tMemClass >& muUnits - number of memory units that the newly created memory atom must allocate.
    // The template specialization parameters determine the class of the allocated memory, which must match to the class of muUnits, and whether allocated/reallocated memory must be zeroed or not.
    // Typical use: MemoryPH< DWORD, true > ma100ZeroedDWords( MUnit< DWORD >( 100 ) ); // allocate 100 * sizeof( DWORD ) bytes.
-   MemoryPH( typename const MUnit< tMemClass >& muUnits )
+   MemoryPH( const MUnit< tMemClass >& muUnits )
    {
-      muSize = muUnits;
+      this->muSize = muUnits;
 
       AllocateMemorySize();
    }
@@ -1175,13 +914,13 @@ public:
    // const tMemClass& tobjInitValue    - value used to initialize the allocated memory unites.
    // The template specialization parameters determine the class of the allocated memory, which must match to the class of muUnits, and whether reallocated memory must be zeroed or not.
    // Typical use: MemoryPH< DWORD, true > ma100ZeroedDWords( MUnit< DWORD >( 100 ), 0xA5A5A5A5 ); // allocate 100 * sizeof( DWORD ) bytes, and initialize every unit in the memory atom with 0xA5A5A5A5.
-   MemoryPH( typename const MUnit< tMemClass >& muUnits, typename const tMemClass& tobjInitValue )
+   MemoryPH( const MUnit< tMemClass >& muUnits, const tMemClass& tobjInitValue )
    {
-      muSize = muUnits;
+      this->muSize = muUnits;
 
       AllocateMemorySize();
 
-      Set( tobjInitValue );
+      this->Set( tobjInitValue );
    }
 
 
@@ -1190,44 +929,44 @@ public:
    // const MUnit< tMemClass >& muUnits - size of the source memory in memory units.
    // The template specialization parameter determines the class of the allocated memory.
    // Typical use: MemoryPH< DWORD > ma100DWords( pDWordSourceMemory, MUnit< DWORD >( 100 ) ); // allocate 100 * sizeof( DWORD ) bytes, and copy the content of 100 * sizeof( DWORD ) bytes pointed by pDWordSourceMemory.
-   MemoryPH( const tMemClass* pSrcData, typename const MUnit< tMemClass >& muUnits )
+   MemoryPH( const tMemClass* pSrcData, const MUnit< tMemClass >& muUnits )
    {
-      muSize = muUnits;
+      this->muSize = muUnits;
 
       AllocateMemorySize();
 
-      memcpy( pData, pSrcData, muSize.InBytes() );
+      memcpy( this->pData, pSrcData, this->muSize.InBytes() );
    }
 
 
    // Destructor releasing the memory held by the memory atom.
    virtual ~MemoryPH()
    {
-      MAtomException::TestNonNullPointer( pData );
+      MAtomException::TestNonNullPointer( this->pData );
       
-      if( nullptr != pData )
+      if( nullptr != this->pData )
       {
-         delete[] pData;
+         delete[] this->pData;
 
-         pData = nullptr;
+         this->pData = nullptr;
       }
    }
 
 
    // Empty the memory atom. The memory contained by the atom is released to the process heap, and a new zero size chunk is allocated.
    // The method returns reference to this memory atom emptied.
-   virtual MAtom< tMemClass >& Empty() throw( MAtomException )
+   virtual MAtom< tMemClass >& Empty() DECLARE_THROW( MAtomException )
    {
-      MAtomException::TestNonNullPointer( pData );
+      MAtomException::TestNonNullPointer( this->pData );
 
-      if( nullptr != pData )
+      if( nullptr != this->pData )
       {
-         delete[] pData;
+         delete[] this->pData;
 
-         pData = nullptr;
+         this->pData = nullptr;
       }
 
-      muSize = 0;
+      this->muSize = 0;
 
       AllocateMemorySize();
 
@@ -1239,20 +978,20 @@ public:
    // const MAtom< tMemClass >& maSource - source memory atom used to modify this object.
    // The operator frees the contained memory and then allocates exactly as much memory as maSource holds, after which it copies its content onto the newly allocated memory of this atom.
    // The method returns reference to the modified (this) memory atom.
-   virtual MAtom< tMemClass >& operator=( typename const MAtom< tMemClass >& maSource )
+   virtual MAtom< tMemClass >& operator=( const MAtom< tMemClass >& maSource )
    {
-      if( nullptr != pData )
+      if( nullptr != this->pData )
       {
-         delete[] pData;
+         delete[] this->pData;
 
-         pData = nullptr;
+         this->pData = nullptr;
       }
 
-      muSize = maSource.GetSize();
+      this->muSize = maSource.GetSize();
 
       AllocateMemorySize();
 
-      memcpy( pData, maSource.GetMemory(), muSize.InBytes() );
+      memcpy( this->pData, maSource.GetMemory(), this->muSize.InBytes() );
 
       return( *this );
    }
@@ -1262,20 +1001,20 @@ public:
    // const MemoryPH< tMemClass >& maSource - source memory atom used to modify this object.
    // The operator frees the contained memory and then allocates exactly as much memory as maSource holds, after which it copies its content onto the newly allocated memory of this atom.
    // The method returns reference to the modified (this) memory atom.
-   virtual MemoryPH< tMemClass >& operator=( typename const MemoryPH< tMemClass >& maSource )
+   virtual MemoryPH< tMemClass >& operator=( const MemoryPH< tMemClass >& maSource )
    {
-      if( nullptr != pData )
+      if( nullptr != this->pData )
       {
-         delete[] pData;
+         delete[] this->pData;
 
-         pData = nullptr;
+         this->pData = nullptr;
       }
 
-      muSize = maSource.muSize;
+      this->muSize = maSource.muSize;
 
       AllocateMemorySize();
 
-      memcpy( pData, maSource.pData, muSize.InBytes() );
+      memcpy( this->pData, maSource.pData, this->muSize.InBytes() );
 
       return( *this );
    }
@@ -1291,18 +1030,21 @@ public:
    // Free the contained memory and reallocate new memory with the required size.
    // const MUnit< tMemClass >& muUnits - size of the new memory to allocate in memory units.
    // The method returns reference to the modified (this) memory atom.
-   virtual MAtom< tMemClass >& ReAllocate( typename const MUnit< tMemClass >& muUnits ) throw( MAtomException )
+   virtual MAtom< tMemClass >& ReAllocate( const MUnit< tMemClass >& muNewSize ) DECLARE_THROW( MAtomException )
    {
-      if( nullptr != pData )
+      if( muNewSize != this->muSize )
       {
-         delete[] pData;
+         if( nullptr != this->pData )
+         {
+            delete[] this->pData;
 
-         pData = nullptr;
-      }
+            this->pData = nullptr;
+         }
 
-      muSize = muUnits;
+         this->muSize = muNewSize;
 
-      AllocateMemorySize();
+         AllocateMemorySize();
+	  }
 
       return( *this );
    }
@@ -1312,13 +1054,13 @@ public:
    // const MAtom< tMemClass >& maSource - source memory atom used to modify this object.
    // The method frees the contained memory and then allocates exactly as much memory as maSource holds, after which it copies its content onto the newly allocated memory of this atom.
    // The method returns reference to the modified (this) memory atom.
-   virtual MAtom< tMemClass >& ReAllocateTransfer( typename const MAtom< tMemClass >& maSource ) throw( MAtomException )
+   virtual MAtom< tMemClass >& ReAllocateTransfer( const MAtom< tMemClass >& maSource ) DECLARE_THROW( MAtomException )
    {
       ReAllocate( maSource.GetSize() );
 
       MUnit< tMemClass > muOffsets( 0 );
 
-      Transfer( muOffsets, false, maSource, muOffsets, false, GetSize() );
+      this->Transfer( muOffsets, false, maSource, muOffsets, false, this->GetSize() );
 
       return( *this );
    }
@@ -1330,7 +1072,7 @@ public:
    // The method returns a new MemoryPH< tMemClass > memory atom holding copy of the contents of the parameters as follow: [maSummandL][maSummandr].
    // Note that the returned memory atom is passed back in a standard manner through a standard copy constructor, and thus this is not a speed and memory efficient 
    // function, which should be used primarily for memory atoms not containing large amounts of memory. For such cases use the Transfer( parameters ) functions.
-   friend inline MemoryPH< tMemClass > operator +( typename const MAtom< tMemClass >& maSummandL, typename const MAtom< tMemClass >& maSummandR ) throw( MAtomException )
+   friend inline MemoryPH< tMemClass > operator +( const MAtom< tMemClass >& maSummandL, const MAtom< tMemClass >& maSummandR ) DECLARE_THROW( MAtomException )
    {
       MemoryPH< tMemClass > memResult( maSummandL.GetSize() + maSummandR.GetSize() );
 
@@ -1351,10 +1093,29 @@ template< class tMemClass >
 class ShellMemory : public MAtom< tMemClass >
 {
 public:
-   // Pure polymorphic method. Returns the Memory Origin. 
-   virtual MemoryOrigin GetMemoryOrigin() const
+   // Returns the memory origin.
+#ifdef _WIN32
+   virtual MemoryOrigin GetMemoryOrigin() const { return( VariableUnidentifiable ); }
+#else
+   virtual int GetMemoryOrigin() const { return( 2 ); }
+#endif
+
+
+   virtual MUI GetDimensionsCount() const
    {
-      return( VariableUnidentifiable );
+      return( 1 );
+   }
+
+
+   virtual MUnit< tMemClass > Width() const
+   {
+      return( this->muSize );
+   }
+
+
+   virtual MUnit< tMemClass > Height() const
+   {
+      return( MUnit< tMemClass >( 1 ) );
    }
 
 
@@ -1390,21 +1151,12 @@ public:
    }
 
 
-   // Constructor initializing a new ShellMemory memory atom using the abstract parent of all memory atom classes in the Atomic Memory Atom implementation I.
-   // MMemory< tMemClass >& maSource - source memory atom used to construct this object.
-   // This constructor does not allocate any memory. Instead it simply creates a ShellMemory atom which points the memory with the same size pointed by the source object.
-   // This constructor is useful for creating interfacing memory atoms for use in code utilizing memory atoms from implementation one and two. 
-   ShellMemory( MMemory< tMemClass >& maSource ) : MAtom< tMemClass >( maSource.GetMemory(), MUnit< tMemClass >( maSource.GetSizeUnits() ) )
-   {
-   }
-
-
    // Constructor creating a memory atom referencing non Atomic Memory Model managed memory.
    // tMemClass* pSrcData               - pointer to a non Atomic Memory Model managed memory to be referenced by the memory atom.
    // const MUnit< tMemClass >& muUnits - size of the source memory in memory units.
    // The template specialization parameter determines the class of the assumed memory.
    // Typical use: ShellMemory< DWORD > ma100DWords( pDWordSourceMemory, MUnit< DWORD >( 100 ) ); // references 100 * sizeof( DWORD ) bytes pointed by pDWordSourceMemory.
-   ShellMemory( tMemClass* pSrcData, typename const MUnit< tMemClass >& muUnits ) : MAtom< tMemClass >( pSrcData, muUnits )
+   ShellMemory( tMemClass* pSrcData, const MUnit< tMemClass >& muUnits ) : MAtom< tMemClass >( pSrcData, muUnits )
    {
    }
 
@@ -1417,10 +1169,10 @@ public:
 
    // Empty the memory atom. The memory object is set to point to NULL memory which has zero size.
    // The method returns reference to this memory atom pointing to NULL memory with zero size.
-   virtual MAtom< tMemClass >& Empty() throw( MAtomException )
+   virtual MAtom< tMemClass >& Empty() DECLARE_THROW( MAtomException )
    {
-      pData  = NULL;
-      muSize = 0;
+      this->pData  = NULL;
+      this->muSize = 0;
 
       return( *this );
    }
@@ -1430,10 +1182,10 @@ public:
    // MAtom< tMemClass >& maSource - source memory atom used to modify this object.
    // The operator assumes the memory owned/referenced by the source memory atom. Notice that the passed memory object is NOT const since this memory atom is 
    // mutable and assumes the same memory chunk which the source atom holds and it could change it. The method returns reference to the modified (this) memory atom.
-   virtual MAtom< tMemClass >& operator=( typename MAtom< tMemClass >& maSource )
+   virtual MAtom< tMemClass >& operator=( MAtom< tMemClass >& maSource )
    {
-      pData  = maSource.GetMemory();
-      muSize = maSource.GetSize();
+      this->pData  = maSource.GetMemory();
+      this->muSize = maSource.GetSize();
 
       return( *this );
    }
@@ -1443,10 +1195,10 @@ public:
    // ShellMemory< tMemClass >& maSource - source memory atom used to modify this object.
    // The operator assumes the memory referenced by the source memory atom. Notice that the passed memory object is NOT const since this memory atom is mutable 
    // and assumes the same memory chunk which the source atom references and it could change it. The method returns reference to the modified (this) memory atom.
-   virtual ShellMemory< tMemClass >& operator=( typename ShellMemory< tMemClass >& maSource )
+   virtual ShellMemory< tMemClass >& operator=( ShellMemory< tMemClass >& maSource )
    {
-      pData  = maSource.GetMemory();
-      muSize = maSource.GetSize();
+      this->pData  = maSource.GetMemory();
+      this->muSize = maSource.GetSize();
 
       return( *this );
    }
@@ -1463,14 +1215,14 @@ public:
    // const MUnit< tMemClass >& muNewSize - new size of the MULL memory.
    // Generally this method is inconsistent since const memory assumed by mutable object may be changed, hence the above limitation.
    // The method returns reference to the modified (this) memory atom.
-   virtual MAtom< tMemClass >& ReAllocate( typename const MUnit< tMemClass >& muNewSize ) throw( MAtomException )
+   virtual MAtom< tMemClass >& ReAllocate( const MUnit< tMemClass >& muNewSize ) DECLARE_THROW( MAtomException )
    {
-      if( NULL != pData )
+      if( NULL != this->pData )
       {
          MAtomException::ExceptionIlligalMethodCall();
       }
 
-      muSize = muNewSize;
+      this->muSize = muNewSize;
 
       return( *this );
    }
@@ -1480,41 +1232,45 @@ public:
    // const MAtom< tMemClass >& maSource - source memory atom used to modify this object.
    // Generally this method is inconsistent since const memory assumed by mutable object may be changed. However there are cases where the method can be helpful, hence the
    // unambiguous name ReAllocateTransferMutableAssumedMemory clarifying the resolution of the issue. The method returns reference to the modified (this) memory atom.
-   virtual MAtom< tMemClass >& ReAllocateTransferMutableAssumedMemory( typename const MAtom< tMemClass >& maSource ) throw( MAtomException )
+   virtual MAtom< tMemClass >& ReAllocateTransferMutableAssumedMemory( const MAtom< tMemClass >& maSource ) DECLARE_THROW( MAtomException )
    {
-      pData  = (tMemClass*)maSource.GetMemory();
-      muSize = maSource.GetSize();
+      this->pData  = (tMemClass*)maSource.GetMemory();
+      this->muSize = maSource.GetSize();
 
       return( *this );
    }
 
 
 private:
+#ifdef _WIN32
+   #pragma warning( push )
+   #pragma warning( disable : 4702 )   // clear warning C4702: unreachable code
+#endif
    // Impossible: Operator equal assuming constant reference to the content of any MAtom< tMemClass > descendent memory atom type by this object.
    // Reason: This operator cannot exist because it is impossible to guarantee that the object (this) will remain constant after passing the const source to it.
-   virtual MAtom< tMemClass >& operator=( typename const MAtom< tMemClass >& /*maSource*/ )
+   virtual MAtom< tMemClass >& operator=( const MAtom< tMemClass >& /*maSource*/ )
    {
       MAtomException::ExceptionIlligalMethodCall();
 
-#ifdef _DEBUG  // clear warning C4702: unreachable code
       return( *this );
-#endif
    }
 
 
    // Impossible: ReAllocateTransfer on constant source memory.
    // Reason: This method cannot exist because the const attribute cannot be enforced after the const source memory is delegated to a mutable object.
-   virtual MAtom< tMemClass >& ReAllocateTransfer( typename const MAtom< tMemClass >& /*maSource*/ ) throw( MAtomException )
+   virtual MAtom< tMemClass >& ReAllocateTransfer( const MAtom< tMemClass >& /*maSource*/ ) DECLARE_THROW( MAtomException )
    {
       MAtomException::ExceptionIlligalMethodCall();
       
-#ifdef _DEBUG  // clear warning C4702: unreachable code
       return( *this );
-#endif
    }
+#ifdef _WIN32
+   #pragma warning( pop )
+#endif
 };
 
 
+#ifdef _WIN32
 // Generic Memory Atom using the GlobalAlloc for memory atom Type::Origin property, i.e. as memory resource, and is implementing the system IStream interface. Inherits MAtom< tMemClass >.
 // class tMemClass - defines the Type::Class property of the memory atom, i.e. granularity and type of the memory units contained by the memory atom.
 template< class tMemClass >
@@ -1552,15 +1308,13 @@ private:
 
                   if( NULL != hMemory )
                   {
-                     pData = (tMemClass*)::GlobalLock( hMemory );
+                     this->pData = (tMemClass*)::GlobalLock( hMemory );
 
-                     if( NULL != pData )
+                     if( NULL != this->pData )
                      {
-                        CopyMemory( pData, pb1ResLock, muSize.InBytes() );
+                        CopyMemory( this->pData, pb1ResLock, muSize.InBytes() );
 
                         this->muSize = muSize;
-
-                        ::GlobalUnlock( hMemory );
 
                         ::CreateStreamOnHGlobal( hMemory, FALSE, &pStream );
                      }
@@ -1573,10 +1327,93 @@ private:
 
 
 public:
-   // Pure polymorphic method. Returns the Memory Origin.
-   virtual MemoryOrigin GetMemoryOrigin() const
+   // Returns the memory origin.
+#ifdef _WIN32
+   virtual MemoryOrigin GetMemoryOrigin() const { return( GlobalAllocFree ); }
+#else
+   virtual int GetMemoryOrigin() const { return( 1 ); }
+#endif
+
+
+   virtual MUI GetDimensionsCount() const
    {
-      return( GlobalAllocFree );
+      return( 1 );
+   }
+
+
+   virtual MUnit< tMemClass > Width() const
+   {
+      return this->muSize;
+   }
+
+
+   virtual MUnit< tMemClass > Height() const
+   {
+      return( MUnit< tMemClass >( 1 ) );
+   }
+
+
+   // Standard default constructor - allocates zero bytes.
+   HandleMemory()
+      :  hMemory( NULL ),
+         pStream( NULL )
+   {
+   }
+
+
+   // Standard copy constructor.
+   // const MAtom< tMemClass >& maSource - memory atom whose content will be copied in the newly created memory atom.
+   HandleMemory( const HandleMemory< tMemClass >& maSource )
+      :  hMemory( ::GlobalAlloc( GMEM_MOVEABLE, maSource.GetSize().InBytes() ) ),
+         pStream( NULL )
+   {
+      this->muSize = maSource.GetSize();
+
+      if( NULL == hMemory )
+      {
+         MAtomException::ExceptionInsufficientMemory();
+      }
+
+      this->pData = (tMemClass*)::GlobalLock( hMemory );
+
+      if( NULL == this->pData )
+      {
+         ::GlobalFree( hMemory );
+
+         MAtomException::ExceptionFailedToOperate( ERROR_NOT_ENOUGH_MEMORY );
+      }
+
+      CopyMemory( this->pData, maSource.GetMemory(), this->muSize.InBytes() );
+
+      ::CreateStreamOnHGlobal( hMemory, FALSE, &pStream );
+   }
+
+
+   // Constructor from a generic memory atom.
+   // const MAtom< tMemClass >& maSource - memory atom whose content will be copied in the newly created memory atom.
+   HandleMemory( const MAtom< tMemClass >& maSource )
+      :  hMemory( ::GlobalAlloc( GMEM_MOVEABLE, maSource.GetSize().InBytes() ) ),
+         pStream( NULL )
+   {
+      this->muSize = maSource.GetSize();
+
+      if( NULL == hMemory )
+      {
+         MAtomException::ExceptionInsufficientMemory();
+      }
+
+      this->pData = (tMemClass*)::GlobalLock( hMemory );
+
+      if( NULL == this->pData )
+      {
+         ::GlobalFree( hMemory );
+
+         MAtomException::ExceptionFailedToOperate( ERROR_NOT_ENOUGH_MEMORY );
+      }
+
+      CopyMemory( this->pData, maSource.GetMemory(), this->muSize.InBytes() );
+
+      ::CreateStreamOnHGlobal( hMemory, FALSE, &pStream );
    }
 
 
@@ -1635,19 +1472,27 @@ public:
 
    // Empty the memory atom. The memory contained by the atom is released, and the memory object is set to point to NULL memory which has zero size.
    // The method returns reference to this memory atom pointing to NULL memory with zero size.
-   virtual MAtom< tMemClass >& Empty() throw( MAtomException )
+   virtual MAtom< tMemClass >& Empty() DECLARE_THROW( MAtomException )
    {
       if( NULL != pStream )
       {
          pStream->Release();
       }
 
-      ::GlobalFree( hMemory );
+      if( NULL != this->pData )
+      {
+         ::GlobalUnlock( hMemory );
+      }
 
-      pStream = NULL;
-      hMemory = NULL;
-      pData   = NULL;
-      muSize  = 0;
+      if( NULL != hMemory )
+      {
+         ::GlobalFree( hMemory );
+      }
+
+      pStream        = NULL;
+      hMemory        = NULL;
+      this->pData    = NULL;
+      this->muSize   = 0;
 
       return( *this );
    }
@@ -1656,7 +1501,7 @@ public:
    // Virtual override function always returns false for this type as it is not able to reallocate memory.
    virtual bool CanReAllocate() const throw()
    {
-      return( false );
+      return( true );
    }
 
 
@@ -1715,47 +1560,125 @@ public:
    }
 
 
-private:
-   // Not implemented.
-   virtual MAtom< tMemClass >& operator=( typename const MAtom< tMemClass >& /*maSource*/ )
+   // Operator equal replicating the content of this object with that of any MAtom< tMemClass > descendent memory atom type.
+   // const MAtom< tMemClass >& maSource - source memory atom used to modify this object.
+   // The operator frees the contained memory and then allocates exactly as much memory as maSource holds, after which it copies its content onto the newly allocated memory of this atom.
+   // The method returns reference to the modified (this) memory atom.
+   virtual MAtom< tMemClass >& operator=( const MAtom< tMemClass >& maSource )
    {
-      MAtomException::ExceptionIlligalMethodCall();
-      
+      Empty();
+
+      hMemory = ::GlobalAlloc( GMEM_MOVEABLE, maSource.GetSize().InBytes() );
+
+      if( NULL == hMemory )
+      {
+         MAtomException::ExceptionInsufficientMemory();
+      }
+
+      this->pData = (tMemClass*)::GlobalLock( hMemory );
+
+      if( NULL == this->pData )
+      {
+         ::GlobalFree( hMemory );
+
+         MAtomException::ExceptionFailedToOperate( ERROR_NOT_ENOUGH_MEMORY );
+      }
+
+      this->muSize = maSource.GetSize();
+
+      CopyMemory( this->pData, maSource.GetMemory(), this->muSize.InBytes() );
+
+      ::CreateStreamOnHGlobal( hMemory, FALSE, &pStream );
+
+      return( *this );
+   }
+
+   
+   template< class tMemClassSwap >
+   void ExchangeMemory( HandleMemory< tMemClassSwap >& memorySwapWith )
+   {
+      MAtom< tMemClass >::ExchangeMemory< tMemClassSwap >( memorySwapWith );
+
+      HGLOBAL hMemoryTemp = hMemory;
+      hMemory = memorySwapWith.hMemory;
+      memorySwapWith.hMemory = hMemoryTemp;
+
+      IStream* pStreamTemp = pStream;
+      pStream = memorySwapWith.pStream;
+      memorySwapWith.pStream = pStreamTemp;
+   }
+
+
+   // Free the contained memory and reallocate new memory with the required size.
+   // const MUnit< tMemClass >& muUnits - size of the new memory to allocate in memory units.
+   // The method returns reference to the modified (this) memory atom.
+   virtual MAtom< tMemClass >& ReAllocate( const MUnit< tMemClass >& muUnits ) DECLARE_THROW( MAtomException )
+   {
+      Empty();
+
+      hMemory = ::GlobalAlloc( GMEM_MOVEABLE, muUnits.InBytes() );
+
+      if( NULL == hMemory )
+      {
+         MAtomException::ExceptionInsufficientMemory();
+      }
+
+      this->pData = (tMemClass*)::GlobalLock( hMemory );
+
+      if( NULL == this->pData )
+      {
+         ::GlobalFree( hMemory );
+
+         MAtomException::ExceptionFailedToOperate( ERROR_NOT_ENOUGH_MEMORY );
+      }
+
+      this->muSize = muUnits;
+
+      ::CreateStreamOnHGlobal( hMemory, FALSE, &pStream );
+
       return( *this );
    }
 
 
-   // Not implemented.
-   virtual MAtom< tMemClass >& ReAllocate( typename const MUnit< tMemClass >& /*muUnits*/  ) throw( MAtomException )
+   // Free the contained memory and replicate the content of the MAtom< tMemClass > descendent memory atom passed as parameter.
+   // const MAtom< tMemClass >& maSource - source memory atom used to modify this object.
+   // The method frees the contained memory and then allocates exactly as much memory as maSource holds, after which it copies its content onto the newly allocated memory of this atom.
+   // The method returns reference to the modified (this) memory atom.
+   virtual MAtom< tMemClass >& ReAllocateTransfer( const MAtom< tMemClass >& maSource ) DECLARE_THROW( MAtomException )
    {
-      MAtomException::ExceptionIlligalMethodCall();
-      
-      return( *this );
-   }
+      Empty();
 
+      hMemory = ::GlobalAlloc( GMEM_MOVEABLE, maSource.GetSize().InBytes() );
 
-   // Not implemented.
-   virtual MAtom< tMemClass >& ReAllocateTransfer( typename const MAtom< tMemClass >& /*maSource*/ ) throw( MAtomException )
-   {
-      MAtomException::ExceptionIlligalMethodCall();
-      
-      return( *this );
-   }
+      if( NULL == hMemory )
+      {
+         MAtomException::ExceptionInsufficientMemory();
+      }
 
+      this->pData = (tMemClass*)::GlobalLock( hMemory );
 
-   // Not implemented.
-   virtual MAtom< tMemClass >& operator=( typename MAtom< tMemClass >& /*maSource*/ )
-   {
-      MAtomException::ExceptionIlligalMethodCall();
+      if( NULL == this->pData )
+      {
+         ::GlobalFree( hMemory );
+
+         MAtomException::ExceptionFailedToOperate( ERROR_NOT_ENOUGH_MEMORY );
+      }
+
+      this->muSize = maSource.GetSize();
+
+      CopyMemory( this->pData, maSource.GetMemory(), this->muSize.InBytes() );
+
+      ::CreateStreamOnHGlobal( hMemory, FALSE, &pStream );
       
       return( *this );
    }
 };
+#endif
 
 
 // Specialized Memory Atom derivate of any MAtom< tMemClass > insatiable memory atom type, with Type::Semantics to zero any memory before it is released. 
 // class MemoryType - must be a MAtom< tMemClass > derivate memory atom which does the memory management and performs the fundamental memory handling and operations.
-// class tMemClass  - defines the Type::Class property of the memory atom, and must be the same as the Type::Class property of the superclass MemoryType.
+// class tMemClass  - defines the Type::Class property of the memory atom, and must be the same as the Type::Class property of the super class MemoryType.
 template< class MemoryType, class tMemClass >
 class SecureMemory : public MemoryType
 {
@@ -1765,9 +1688,9 @@ class SecureMemory : public MemoryType
 private:
    __forceinline void DisqualifyContent() throw()
    {
-      if( NULL != pData )
+      if( NULL != this->pData )
       {
-         SecureZeroMemory( (void*)pData, muSize.InBytes() );
+         SecureZeroMemory( (void*)this->pData, this->muSize.InBytes() );
       }
    }
 
@@ -1800,7 +1723,7 @@ public:
    // const MUnit< tMemClass >& muUnits - size of the source memory in memory units.
    // The template specialization parameter determines the class of the allocated memory.
    // Typical use: SecureMemory< MemoryPH< BYTE >, BYTE > memData( MUnit< BYTE >( 40 ) );
-   SecureMemory( const tMemClass* pSrcData, typename const MUnit< tMemClass >& muUnits ) : MemoryType( pSrcData, muUnits )
+   SecureMemory( const tMemClass* pSrcData, const MUnit< tMemClass >& muUnits ) : MemoryType( pSrcData, muUnits )
    {
    }
 
@@ -1814,7 +1737,7 @@ public:
 
    // Empty the memory atom. First erases the memory by forcing zeroing and then releases it via the specializing parent Empty() operation.
    // The method returns reference to this memory atom emptied.
-   virtual MAtom< tMemClass >& Empty() throw( MAtomException )
+   virtual MAtom< tMemClass >& Empty() DECLARE_THROW( MAtomException )
    {
       DisqualifyContent();
 
@@ -1829,7 +1752,7 @@ public:
    // The operator frees the contained memory after erasing it, and then passes the control to the identical operator= of the 
    // specializing parent class which handles the memory operations to appropriately handle the allocation and copy operations.
    // The method returns reference to the modified (this) memory atom.
-   virtual MAtom< tMemClass >& operator=( typename MAtom< tMemClass >& maSource )
+   virtual MAtom< tMemClass >& operator=( MAtom< tMemClass >& maSource )
    {
       DisqualifyContent();
 
@@ -1839,22 +1762,22 @@ public:
 
    // Decreases the number of the contained memory units to the muSize passed as parameter, after cleaning the extra memory.
    // The function returns a reference to the modified memory atom.
-   virtual MAtom< tMemClass >& LimitSizeTo( typename const MUnit< tMemClass >& muSize ) throw( MAtomException )
+   virtual MAtom< tMemClass >& LimitSizeTo( const MUnit< tMemClass >& muNewSize ) DECLARE_THROW( MAtomException )
    {
-      MAtomException::TestInRangeZero2UpperLimit< true, true >( muSize.GetUnits(), this->muSize.GetUnits() );
+      MAtomException::TestInRangeZero2UpperLimit< true, true >( muNewSize.GetUnits(), this->muSize.GetUnits() );
 
-      tMemClass*               pData2( pData );
-      const MUnit< tMemClass > muSize2( this->muSize );
+      tMemClass*               pDataOrig(  this->pData );
+      const MUnit< tMemClass > muSizeOrig( this->muSize );
 
-      pData         = (tMemClass*)((size_t)pData + muSize.InBytes());
-      this->muSize -= muSize;
+      this->pData   = (tMemClass*)((size_t)this->pData + muNewSize.InBytes());
+      this->muSize -= muNewSize;
 
       DisqualifyContent();
 
-      pData        = pData2;
-      this->muSize = muSize2;
+      this->pData  = pDataOrig;
+      this->muSize = muSizeOrig;
 
-      return( MemoryType::LimitSizeTo( muSize ) );
+      return( MemoryType::LimitSizeTo( muNewSize ) );
    }
 
 
@@ -1869,13 +1792,63 @@ private:
 };
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadResource( const TCHAR* strType, const DWORD dwName ) throw( MAtomException )
+
+
+template< class tMemClass > bool operator==( const ShellMemory< tMemClass >& maLeft, const ShellMemory< tMemClass >& maRight )
+{
+   if( maLeft.GetSize() != maRight.GetSize() )
+   {
+      return( false );
+   }
+
+   return( 0 == memcmp( maLeft.GetMemory(), maRight.GetMemory(), maRight.GetSize().InBytes() ) );
+}
+
+
+template< class tMemClass > bool operator!=( const ShellMemory< tMemClass >& maLeft, const ShellMemory< tMemClass >& maRight )
+{
+	return( !operator==( maLeft, maRight ) );
+}
+
+
+template< class tMemClass > bool operator==( const MAtom< tMemClass >& maLeft, const MAtom< tMemClass >& maRight )
+{
+   if( maLeft.Width() != maRight.Width() )
+   {
+      return( false );
+   }
+
+   if( maLeft.Height() != maRight.Height() )
+   {
+      return( false );
+   }
+
+   for( MUnit< tMemClass > muRow; muRow < maLeft.Height(); muRow++ )
+   {
+      if( maLeft.GetShellRow( muRow ) != maRight.GetShellRow( muRow ) )
+      {
+         return( false );
+      }
+    }
+
+   return( true );
+}
+
+
+template< class tMemClass > bool operator!=( const MAtom< tMemClass >& maLeft, const MAtom< tMemClass >& maRight )
+{
+	return( !operator==( maLeft, maRight ) );
+}
+
+
+#ifdef _WIN32
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadResource( const TCHAR* strType, const DWORD dwName ) DECLARE_THROW( MAtomException )
 {
    return( LoadResource( hDefaultTextResourceModule, strType, dwName ) );
 }
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadResource( const TCHAR* strModule, const TCHAR* strType, const DWORD dwName ) throw( MAtomException )
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadResource( const TCHAR* strModule, const TCHAR* strType, const DWORD dwName ) DECLARE_THROW( MAtomException )
 {
    const MModuleHandle hmModule( LoadLibrary( strModule ) );
 
@@ -1883,7 +1856,7 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadResource
 }
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadResource( const HMODULE hModule, const TCHAR* strType, const DWORD dwName ) throw( MAtomException )
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadResource( const HMODULE hModule, const TCHAR* strType, const DWORD dwName ) DECLARE_THROW( MAtomException )
 {
    MASSERT( NULL != hModule );
 
@@ -1943,6 +1916,7 @@ template< class tMemClass > bool MAtom< tMemClass >::StoreResource( LPCTSTR strM
 
    return( false );
 }
+#endif
 
 
 template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFile( const TCHAR *ptcFilename ) throw()
@@ -1955,9 +1929,11 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFile( co
 
    if( !hFile.IsValid() )
    {
+      const DWORD dwLastError( ::GetLastError() );
+
       Empty();
 
-      MAtomException::ExceptionInvaldCall( ERROR_INVALID_HANDLE );
+      MAtomException::ExceptionInvaldCall( dwLastError );
    }
 
 
@@ -1980,8 +1956,6 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFile( co
       Empty();
 
       MAtomException::TestCompatibleCall( false );
-
-      return( *this );
    }
 
 
@@ -1996,6 +1970,7 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFile( co
    for( DWORD dwChunkSize( MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) ); ptrDataCopy < ptrLastData; ptrDataCopy += dwChunkSize, dwChunkSize = MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) )
    {
       DWORD dwBytesRead( 0 );
+
       if( !ReadFile( hFile, ptrDataCopy, dwChunkSize, &dwBytesRead, NULL ) )
       {
          const DWORD dwLastError( ::GetLastError() );
@@ -2236,7 +2211,7 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFile( co
 }
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFromFile( const MHandle& hFile ) throw( MAtomException )
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFromFile( const MHandle& hFile ) DECLARE_THROW( MAtomException )
 {
    MASSERT( hFile.IsValid() );
 
@@ -2306,25 +2281,25 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LoadFromFile
 }
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Offset( typename const MUnit< tMemClass >& muOffset, const bool bPositiveDirection, const bool bConstantSize ) throw( MAtomException )
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Offset( const MUnit< tMemClass >& muOffset, const bool bPositiveDirection, const bool bConstantSize ) DECLARE_THROW( MAtomException )
 {
    // Offsetting the beginning of memory is available only for memory types that do not reallocate memory, e.g. ShellMemory.
    MAtomException::TestCompatibleCall( !CanReAllocate() );
-   MAtomException::TestNonNullPointer( pData );
+   MAtomException::TestNonNullPointer( this->pData );
 
-   pData = (tMemClass*)((size_t)pData + (bPositiveDirection ? 1 : -1) * muOffset.InBytes() );
+   this->pData = (tMemClass*)((size_t)this->pData + (bPositiveDirection ? 1 : -1) * muOffset.InBytes() );
 
    if( !bConstantSize )
    {
       if( bPositiveDirection )
       {
-         MAtomException::TestInRangeZero2UpperLimit< true, true >( muOffset.GetUnits(), muSize.GetUnits() );
+         MAtomException::TestInRangeZero2UpperLimit< true, true >( muOffset.GetUnits(), this->muSize.GetUnits() );
 
-         muSize -= muOffset;
+         this->muSize -= muOffset;
       }
       else
       {
-         muSize += muOffset;
+         this->muSize += muOffset;
       }
    }
 
@@ -2332,7 +2307,7 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Offset( type
 }
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LimitSizeTo( typename const MUnit< tMemClass >& mu_size ) throw( MAtomException )
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::LimitSizeTo( const MUnit< tMemClass >& mu_size ) DECLARE_THROW( MAtomException )
 {
    MAtomException::TestInRangeZero2UpperLimit< true, true >( mu_size.GetUnits(), this->muSize.GetUnits() );
 
@@ -2348,11 +2323,13 @@ template< class tMemClass > const MAtom< tMemClass >& MAtom< tMemClass >::Append
 
    if( !hFile.IsValid() )
    {
-      MAtomException::ExceptionInvaldCall( ERROR_INVALID_HANDLE );
+      MAtomException::ExceptionInvaldCall( ::GetLastError() );
    }
 
-   LARGE_INTEGER li = {0};
-   if( !SetFilePointerEx( hFile, (li.QuadPart = 0, li), NULL, FILE_END ) )
+   LARGE_INTEGER li;
+   li.QuadPart = 0;
+
+   if( !SetFilePointerEx( hFile, li, NULL, FILE_END ) )
    {
       MAtomException::ExceptionFailedToOperate( ::GetLastError() );
    }
@@ -2398,8 +2375,10 @@ template< class tMemClass > const MAtom< tMemClass >& MAtom< tMemClass >::Append
    }
 
 
-   LARGE_INTEGER li = { 0 };
-   if( !SetFilePointerEx( hFile, (li.QuadPart = 0, li), 0, FILE_END ) )
+   LARGE_INTEGER li;
+   li.QuadPart = 0;
+
+   if( !SetFilePointerEx( hFile, li, 0, FILE_END ) )
    {
       MAtomException::ExceptionFailedToOperate( ::GetLastError() );
    }
@@ -2485,8 +2464,10 @@ template< class tMemClass > const MAtom< tMemClass >& MAtom< tMemClass >::SaveAs
    }
 
 
-   LARGE_INTEGER li = { 0 };
-   if( !SetFilePointerEx( hFile, (li.QuadPart = 0, li), NULL, FILE_BEGIN ) )
+   LARGE_INTEGER li;
+   li.QuadPart = 0;
+
+   if( !SetFilePointerEx( hFile, li, NULL, FILE_BEGIN ) )
    {
       MAtomException::ExceptionFailedToOperate( ::GetLastError() );
    }
@@ -2592,7 +2573,7 @@ template< class tMemClass > MUnit< tMemClass > MAtom< tMemClass >::Find( const t
 }
 
 
-template< class tMemClass > const ShellMemory< tMemClass > MAtom< tMemClass >::Search_L2R( typename const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd ) const
+template< class tMemClass > const ShellMemory< tMemClass > MAtom< tMemClass >::Search_L2R( const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd ) const
 {
    if( memSearchFor.IsEmpty() )
    {
@@ -2633,7 +2614,7 @@ template< class tMemClass > const ShellMemory< tMemClass > MAtom< tMemClass >::S
 }
 
 
-template< class tMemClass > const ShellMemory< tMemClass > MAtom< tMemClass >::Search_L2R( typename const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd, const bool bCaseSensitive ) const
+template< class tMemClass > const ShellMemory< tMemClass > MAtom< tMemClass >::Search_L2R( const MAtom< tMemClass >& memSearchFor, const bool bPartialMatchAtTheEnd, const bool bCaseSensitive ) const
 {
    if( memSearchFor.IsEmpty() )
    {
@@ -2783,6 +2764,10 @@ template< class tMemClass > double MAtom< tMemClass >::GetHash1() const // throw
 
 template< class tMemClass > unsigned __int64 MAtom< tMemClass >::MHash() const
 {
+   // Typically an external array of 4 million primes is included in the project for this function to work.
+   // Include sufficiently large number of primes assigned to primes4000001 and remove this message and ASSERT.
+   MASSERT( FALSE );
+
    const MUI muiSizeData( GetSize().InBytes() );
 
 
@@ -2959,7 +2944,18 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::XOR( const t
 }
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Set( typename const tMemClass& objPattern ) throw()
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::ADD( const tMemClass& mtAddUnit ) throw()
+{
+   for( MUI muiIndex = 0; muiIndex < muSize.GetUnits(); muiIndex++ )
+   {
+      pData[muiIndex] = pData[muiIndex] + mtAddUnit;
+   }
+
+   return( *this );
+}
+
+
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Set( const tMemClass& objPattern ) throw()
 {
    for( MUI muiIndex = 0; muiIndex < muSize.GetUnits(); muiIndex++ )
    {
@@ -2970,7 +2966,7 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Set( typenam
 }
 
 
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Reset( typename const BYTE b1Wipe ) throw()
+template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Reset( const BYTE b1Wipe ) throw()
 {
    BYTE *pByteData = (BYTE*)pData;
    const MUI muiSize( muSize.InBytes() );
@@ -3001,65 +2997,7 @@ template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Reverse() th
 }
 
 
-template< class tMemClass > MemoryPH< char > MAtom< tMemClass >::Bin2Ascii() const
-{
-   MemoryPH< char > maDestination( MUnit< char >( 2 * GetSize().InBytes() ) );
-   BYTE *pDestination = (BYTE*)maDestination.GetMemory();
 
-   MUI muiSize( GetSize().InBytes() );
-
-   for( DWORD dwIndex = 0; dwIndex < muiSize; dwIndex++ )
-   {
-      const BYTE b1Byte( ((BYTE*)pData)[dwIndex] );
-
-      const BYTE b1MSHB( b1Byte >> 0x04 );
-      const BYTE b1LSHB( b1Byte &  0x0F );
-
-      pDestination[ 2 * dwIndex     ] = (BYTE)(0x30 + (b1MSHB < 0x0A ? b1MSHB : b1MSHB + 0x07));
-      pDestination[ 2 * dwIndex + 1 ] = (BYTE)(0x30 + (b1LSHB < 0x0A ? b1LSHB : b1LSHB + 0x07));
-   }
-
-   return( maDestination );
-}
-
-
-template< class tMemClass > MAtom< tMemClass >& MAtom< tMemClass >::Ascii2Bin()
-{
-   const MUI muiSizeInBytes( GetSize().InBytes() );
-
-   MAtomException::TestCompatibleCall( 0 == (muiSizeInBytes & 1) );
-
-   for( MUI muiIndex = 0; muiIndex < muiSizeInBytes; muiIndex += 2 )
-   {
-      char sb1MSB( pData[muiIndex    ] - 0x30 );
-      char sb1LSB( pData[muiIndex + 1] - 0x30 );
-
-      if( 0x09 < sb1MSB ) { sb1MSB -= 0x07; }
-      if( 0x09 < sb1LSB ) { sb1LSB -= 0x07; }
-
-      if( ((sb1MSB < 0) || (sb1MSB > 0x0F )) || ((sb1LSB < 0) || (sb1LSB > 0x0F )) )
-      {
-         MAtomException::ExceptionInvalidData();
-      }
-
-      if( !bool( IsInRange< int, true, int, true, int >( 0, sb1MSB, 0x0F ) ) )
-      {
-         MAtomException::ExceptionInvalidData();
-      }
-
-      if( !bool( IsInRange< int, true, int, true, int >( 0, sb1LSB, 0x0F ) ) )
-      {
-         MAtomException::ExceptionInvalidData();
-      }
-
-      pData[muiIndex / 2] = (char)((sb1MSB << 4) | sb1LSB);
-   }
-
-   LimitSizeTo( GetSize() / 2 );
-
-   return( *this );
-}
-
-
-#pragma warning( pop )
-
+#ifdef _WIN32
+   #pragma warning( pop )
+#endif

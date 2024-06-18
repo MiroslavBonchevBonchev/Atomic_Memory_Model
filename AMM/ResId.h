@@ -4,7 +4,7 @@
 //
 //                   ATOMIC MEMORY MODEL - Implementation Example 'Phase One'
 //
-// © Copyright 2001 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
+// © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev. All rights reserved.
 //
 //
 //******************************************************************************************************
@@ -13,7 +13,7 @@
 // Open Source License – The MIT License
 //
 //
-// {your product} uses the Atomic Memory Model by Miroslav Bonchev Bonchev.
+// Atomic Memory Model © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated  documentation files  (the "Software"),  to deal  in the Software without restriction,

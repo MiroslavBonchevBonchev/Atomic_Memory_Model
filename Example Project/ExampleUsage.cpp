@@ -35,7 +35,6 @@
 // OSI Certified is a certification mark of the Open Source Initiative.
 
 
-#include <windows.h>
 #include <stdio.h>
 #include "..\AMM\MAtom.h"
 #include "..\AMM\StringEx.h"
@@ -46,72 +45,10 @@
 HMODULE hDefaultTextResourceModule = NULL;
 
 
-MemoryPH< DWORD > fun1( MemoryPH< DWORD > m )
-{
-   printf( TEXT("fun1: memory units = %d, bytes = %d   "), m.GetSize().GetUnits(), m.GetSize().InBytes() );
-
-
-   for( MUnit< DWORD > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
-   {
-      printf( TEXT(" %d "), m[muCounter] );
-   }
-
-
-   printf( TEXT("\n\n") );
-
-
-   // Modify the second DWORD.
-   m[1] = 7;
-
-
-   // Return the modified object.
-   return( m );
-}
-
-
-void fun2( const MemoryPH< DWORD >& m )
-{
-   printf( TEXT("fun2: memory units = %d, bytes = %d   "), m.GetSize().GetUnits(), m.GetSize().InBytes() );
-
-
-   for( MUnit< DWORD > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
-   {
-      printf( TEXT(" %d "), m[muCounter] );
-   }
-
-
-   printf( TEXT("\n\n") );
-}
-
-
-void fun3( const MAtom< DWORD >& m )
-{
-   printf( TEXT("fun3: memory units = %d, bytes = %d   "), m.GetSize().GetUnits(), m.GetSize().InBytes() );
-
-
-   for( MUnit< DWORD > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
-   {
-      printf( TEXT(" %d "), m[muCounter] );
-   }
-
-
-   printf( TEXT("\n\n") );
-}
-
-
-void fun4( const MAtom< TCHAR >& m )
-{
-   printf( TEXT("fun3: memory units = %d, bytes = %d   "), m.GetSize().GetUnits(), m.GetSize().InBytes() );
-
-
-   for( MUnit< TCHAR > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
-   {
-      printf( TEXT(" %d "), m[muCounter] );
-   }
-
-
-   printf( TEXT("\n\n") );
-}
+MemoryPH< DWORD > fun1( MemoryPH< DWORD > m );
+void fun2( const MemoryPH< DWORD >& m );
+void fun3( const MAtom< DWORD >& m );
+void fun4( const MAtom< TCHAR >& m );
 
 
 class A
@@ -219,7 +156,7 @@ int main()
       // Call fun2 passing the ma2 to print its content.
       fun2( ma2 );
 
-      
+
       // Call fun3 passing the ma2 to print its content.
       fun3( ma5 );
 
@@ -239,7 +176,7 @@ int main()
       // Create a zero terminated string object using the typedef string. You can also use
       // MStringEx< char > strName( "string" );  to specialize the particular object using
       // wchat_t, TCHAR or another appropriate char definition.
-      string strName( "Hello!" );
+      MStringEx< TCHAR > strName( "Hello World!!!" );
 
 
       // Print the strName string.
@@ -254,7 +191,7 @@ int main()
       fun4( maName );
 
 
-//      const DWORD d( ma1[25] ); // Generate exception - index is outside of memory.
+      //      const DWORD d( ma1[25] ); // Generate exception - index is outside of memory.
 
 
       DWORD dw( 6 );
@@ -266,18 +203,18 @@ int main()
       MUnit< DWORD > mu3( dw );
       MUnit< DWORD > mu4( i );
       MUnit< DWORD > mu5( ui );
-  
 
-//      mu2 += MUnit< DWORD >( -3 ); // Generate exception - memory units overflow.
+
+      //      mu2 += MUnit< DWORD >( -3 ); // Generate exception - memory units overflow.
 
 
       mu5 = MUnit< DWORD >( 3 );
 
-      
+
       mu2 = 12 / mu2;
 
 
-//      mu4 = mu5 - 3 * (3 + mu2); // Generate exception - negative memory units.
+      //      mu4 = mu5 - 3 * (3 + mu2); // Generate exception - negative memory units.
    }
    catch( const MUnitException e )
    {
@@ -297,6 +234,75 @@ int main()
    }
 
 
-   return( 0 );
+   return(0);
 }
 
+
+
+
+MemoryPH< DWORD > fun1( MemoryPH< DWORD > m )
+{
+   printf( TEXT( "fun1: memory units = %llu, bytes = %llu   " ), m.GetSize().GetUnits(), m.GetSize().InBytes() );
+
+
+   for( MUnit< DWORD > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
+   {
+      printf( TEXT( " %d " ), m[muCounter] );
+   }
+
+
+   printf( TEXT( "\n\n" ) );
+
+
+   // Modify the second DWORD.
+   m[1] = 7;
+
+
+   // Return the modified object.
+   return(m);
+}
+
+
+void fun2( const MemoryPH< DWORD >& m )
+{
+   printf( TEXT( "fun2: memory units = %llu, bytes = %llu   " ), m.GetSize().GetUnits(), m.GetSize().InBytes() );
+
+
+   for( MUnit< DWORD > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
+   {
+      printf( TEXT( " %d " ), m[muCounter] );
+   }
+
+
+   printf( TEXT( "\n\n" ) );
+}
+
+
+void fun3( const MAtom< DWORD >& m )
+{
+   printf( TEXT( "fun3: memory units = %llu, bytes = %llu   " ), m.GetSize().GetUnits(), m.GetSize().InBytes() );
+
+
+   for( MUnit< DWORD > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
+   {
+      printf( TEXT( " %d " ), m[muCounter] );
+   }
+
+
+   printf( TEXT( "\n\n" ) );
+}
+
+
+void fun4( const MAtom< TCHAR >& m )
+{
+   printf( TEXT( "fun4: %s -> memory units = %llu, bytes = %llu   " ), m.GetMemory(), m.GetSize().GetUnits(), m.GetSize().InBytes() );
+
+
+   for( MUnit< TCHAR > muCounter( 0 ); muCounter < m.GetSize(); muCounter++ )
+   {
+      printf( TEXT( " %d " ), m[muCounter] );
+   }
+
+
+   printf( TEXT( "\n\n" ) );
+}

@@ -4,7 +4,7 @@
 //
 //                   ATOMIC MEMORY MODEL - Implementation Example 'Phase One'
 //
-// © Copyright 2001 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
+// © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev. All rights reserved.
 //
 //
 //******************************************************************************************************
@@ -13,7 +13,7 @@
 // Open Source License – The MIT License
 //
 //
-// {your product} uses the Atomic Memory Model by Miroslav Bonchev Bonchev.
+// Atomic Memory Model © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated  documentation files  (the "Software"),  to deal  in the Software without restriction,
@@ -39,18 +39,20 @@
 #pragma once
 
 
-#include "Common.h"
+#include "CommonAMM.h"
+#include "MUnit.h"
 #include "MHandle.h"
 
 
-#ifdef _WIN64
-   typedef unsigned __int64 MLISTINDEX;
+#if defined(_WIN64)
+	typedef unsigned __int64 MLISTINDEX;
 #else
-   typedef DWORD MLISTINDEX;
+	typedef DWORD MLISTINDEX;
 #endif
 
 
 #define MLIST_LAST_INDEX (MLISTINDEX)-1
+#define MLIST_INVALID_INDEX (MLISTINDEX)-1
 #define each( indexIdentifier, mlist ) MLISTINDEX indexIdentifier = 0; indexIdentifier < mlist.GetCount(); indexIdentifier++
 
 
@@ -59,14 +61,14 @@ class MList
 {
    // Common Type Comparators
 public:
-   class AlphabeticalOrder
+   class IntegerOrder
    {
    private:
       bool bAscending;
 
    public:
-      AlphabeticalOrder( const bool bAscending ) : bAscending( bAscending ) {}
-      ~AlphabeticalOrder() {}
+      IntegerOrder( const bool bAscending ) : bAscending( bAscending ) {}
+      ~IntegerOrder() {}
 
    public:
       bool IsOrdered( const typeMembers& tmLeft, const typeMembers& tmRight ) const
@@ -75,14 +77,14 @@ public:
       }
    };
 
-   class AlphabeticalOrderOfPairByLabel
+   class IntegerOrderByLabelRef
    {
    private:
       bool bAscending;
 
    public:
-      AlphabeticalOrderOfPairByLabel( const bool bAscending ) : bAscending( bAscending ) {}
-      ~AlphabeticalOrderOfPairByLabel() {}
+      IntegerOrderByLabelRef( const bool bAscending ) : bAscending( bAscending ) {}
+      ~IntegerOrderByLabelRef() {}
 
    public:
       bool IsOrdered( const typeMembers& tmLeft, const typeMembers& tmRight ) const
@@ -103,7 +105,7 @@ public:
       typeMembers*     pObject;
 
    private:
-      ObjectContainer( ObjectContainer *pPrevious_P, typeMembers *pObject_P, ObjectContainer *pNext_P )
+      ObjectContainer( ObjectContainer *pPrevious_P, typeMembers* pObject_P, ObjectContainer *pNext_P )
       {
          pPrevious   = pPrevious_P;
          pObject     = pObject_P;
@@ -158,11 +160,17 @@ public:
    };
 
 
+   ObjectContainer* GetHeadContainer() const throw()
+   {
+      return( pHead );
+   }
+
+
 protected:
-   MLISTINDEX            uiNumberOfMembers;
    ObjectContainer*      pTail;
    ObjectContainer*      pHead;
    mutable typeMembers** ppListArray;
+   MLISTINDEX            uiNumberOfMembers;
 
 
 public:
@@ -207,7 +215,7 @@ public:
       }
    }
 
-   // Constructor from list of pointers. The last pointer MUST be NULL. Pounters are "swallowed" by the list.
+   // Constructor from list of pointers. The last pointer MUST be NULL. Pointers are "swallowed" by the list.
    MList( typeMembers* ptmHeadObject, ... )
       :  pTail( NULL ),
          pHead( NULL ),
@@ -233,7 +241,6 @@ public:
    MList< typeMembers > &operator=( const MList< typeMembers > &listSrc )
    {
       Empty();
-      DeAccelerate();
 
       for( ObjectContainer* pObjectContainer = listSrc.pHead; NULL != pObjectContainer; pObjectContainer = pObjectContainer->pNext )
       {
@@ -243,10 +250,6 @@ public:
       if( NULL != listSrc.ppListArray )
       {
          Accelerate();
-      }
-      else
-      {
-         DeAccelerate();
       }
 
       return( *this );
@@ -342,12 +345,8 @@ public:
          delete pObjectToReturn;
       }
 
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-         
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
 
       return( *this );
    }
@@ -361,16 +360,12 @@ public:
          RemoveTail();
       }
 
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-         
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
    }
 
 
-   // Returns true if the list is empty and false if tehre is at leats one member.
+   // Returns true if the list is empty and false if there is at least one member.
    bool IsEmpty() const
    {
       return( NULL == pHead );
@@ -380,7 +375,7 @@ public:
    // Removes the tail object from the list and returns a pointer to that object - which is
    // valid pointer to valid object. Returns NULL if the list is already empty.
    // This function will disrupt the list enumeration.
-   typeMembers *RemoveTail()
+   typeMembers* RemoveTail()
    {
       if( NULL == pTail )
       {
@@ -405,13 +400,8 @@ public:
 
       uiNumberOfMembers--;
 
-      // deallocates acceleration
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-         
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
 
       return( pObjectToReturn );
    }
@@ -420,7 +410,7 @@ public:
    // Removes the head object from the list and returns a pointer to that object - which is
    // valid pointer to valid object. Returns NULL if the list is already empty.
    // This function will disrupt the list enumeration.
-   typeMembers *RemoveHead()
+   typeMembers* RemoveHead()
    {
       if( NULL == pHead )
       {
@@ -444,21 +434,16 @@ public:
 
       uiNumberOfMembers--;
 
-      // deallocates acceleration
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-         
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
 
       return( pObjectToReturn );
    }
 
 
-   typeMembers *RemoveMember( const MLISTINDEX uiIndex )
+   typeMembers* RemoveMember( const MLISTINDEX uiIndex )
    {
-      typeMembers *pObjectToReturn = NULL;
+      typeMembers* pObjectToReturn = NULL;
 
       if( 0 == uiIndex )
       {
@@ -489,13 +474,8 @@ public:
 
          delete pObjectContainer;
 
-         // deallocates acceleration
-         if( NULL != ppListArray )
-         {
-            HeapFree( GetProcessHeap(), 0, ppListArray );
-            
-            ppListArray = NULL;
-         }
+         // Free the array index.
+         DeAccelerate();
       }
 
       return( pObjectToReturn );
@@ -503,7 +483,7 @@ public:
 
 
    // Add new Tail to the list.
-   typeMembers* AddTail( typeMembers *pNewTailObject )
+   typeMembers* AddTail( typeMembers* pNewTailObject )
    {
       if( NULL == pNewTailObject )
       {
@@ -526,20 +506,15 @@ public:
 
       uiNumberOfMembers++;
 
-      // deallocates acceleration
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-         
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
 
       return( pTail->pObject );
    }
 
 
    // Add new Head to the list.
-   typeMembers* AddHead( typeMembers *pNewHeadObject )
+   typeMembers* AddHead( typeMembers* pNewHeadObject )
    {
       if( NULL == pNewHeadObject )
       {
@@ -562,13 +537,8 @@ public:
 
       uiNumberOfMembers++;
 
-      // deallocates acceleration
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
 
       return( pHead->pObject );
    }
@@ -576,7 +546,7 @@ public:
 
    // Adds New Object into the list, at position uiIndex, where uiIndex is zero based index.
    // The added new member of the list will be the new member with the passed Index.
-   bool AddMember( typeMembers *pNewObject, const MLISTINDEX uiIndex )
+   bool AddMember( typeMembers* pNewObject, const MLISTINDEX uiIndex )
    {
       if( NULL == pNewObject )
       {
@@ -610,13 +580,8 @@ public:
 
          uiNumberOfMembers++;
 
-         // deallocates acceleration
-         if( NULL != ppListArray )
-         {
-            HeapFree( GetProcessHeap(), 0, ppListArray );
-            
-            ppListArray = NULL;
-         }
+         // Free the array index.
+         DeAccelerate();
       }
       else
       {
@@ -647,13 +612,8 @@ public:
 
       uiNumberOfMembers++;
 
-      // deallocates acceleration
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-         
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
 
       return( pFrontMember->pNext );
    }
@@ -665,14 +625,14 @@ public:
    // order the new element position to be correct the list state must be sorted accordingly or empty before
    // calling this function. This function will disrupt the list enumeration.In case of equal new and already 
    // existing element the new member will be added after the already existing one.
-   typeMembers* AddMemberSorted( typeMembers *ptNewObject, const bool bMax2Head_Min2Tail )
+   typeMembers* AddMemberSorted( typeMembers* ptNewObject, const bool bMax2Head_Min2Tail )
    {
       if( NULL != ptNewObject )
       {
          ObjectContainer* pObjectContainer( pHead );
          MLISTINDEX       uiIndex( 0 );
 
-         // I will enumerate  from the head, so the worce case is when the new element will become
+         // I will enumerate  from the head, so the worse case is when the new element will become
          // the new tail. I can save at least this case by first comparing to the current tail.
          if( NULL != pTail )
          {
@@ -681,7 +641,7 @@ public:
                // Need to be >= to keep the adding order - if new == old - add the new behind the old.
                if( *ptNewObject <= *pTail->pObject )
                {
-                  // The following while will quit, and the control will go stright to AddTail.
+                  // The following while will quit, and the control will go straight to AddTail.
                   pObjectContainer = NULL;
                }
             }
@@ -690,7 +650,7 @@ public:
                // Need to be >= to keep the adding order - if new == old - add the new behind the old.
                if( *ptNewObject >= *pTail->pObject )
                {
-                  // The following while will quit, and the control will go stright to AddTail.
+                  // The following while will quit, and the control will go straight to AddTail.
                   pObjectContainer = NULL;
                }
             }
@@ -729,13 +689,13 @@ public:
 
 
    // Add new member to the list at position that reflects the value of the element. This function is useful
-   // for cretion of sorted lists. The position at which to plug the new element is found by comparing with
+   // for creation of sorted lists. The position at which to plug the new element is found by comparing with
    // operator> or operator< for the list type according to the bMax2Head_Min2Tail parameter, therefore in
    // order the new element position to be correct the list state must be sorted accordingly or empty before
    // calling this function. This function will disrupt the list enumeration. In case of equal new and already 
    // existing element the new member will be added after the already existing one.
    template< class tComparator > 
-   typeMembers* AddSorted( typename const tComparator& tcComparator, typename typeMembers *ptNewObject )
+   typeMembers* AddSorted( const tComparator& tcComparator, typeMembers* ptNewObject )
    {
       if( NULL == ptNewObject )
       {
@@ -744,12 +704,12 @@ public:
 
       for( MLISTINDEX uiIndex = 0; uiIndex < uiNumberOfMembers; uiIndex++ )
       {
-         // IsOrdered MUST perform comparison with > and < respectivelly, AND NOT with( >= or <=).
-         // THIS IS DUE if the class that is compared have more properties than the one currently to compare
-         // the "=" part of ">=" & "<=" loaded to compare - (depending if all or single property is compared)
-         // at once, so if multy propertyes but one compared at time the "=" part of ">=" & "<=" will swap
-         // the order unexpectedly. Less important there will be also unnecessary performance overhead.
-         // Also note the order of the parameters.
+         // IsOrdered MUST perform comparison with > or < respectively, AND NOT with( >= or <=).
+         // This is because if the class that is compared has more properties than the property currently compared
+         // then the "=" part of ">=" & "<=" used to compare - (depending if all or single property is compared)
+         // at once, so if a class has multiple properties but only one compared the "=" part of ">=" & "<=" will swap
+         // the objects which are only equal in this property unexpectedly. Less important there will be also unnecessary 
+         // performance overhead. Also note the order of the parameters.
          if( !tcComparator.IsOrdered( *operator[]( uiIndex ), *(const typeMembers*)ptNewObject ) )
          {
             return( AddMember( ptNewObject, uiIndex ), ptNewObject );
@@ -767,12 +727,27 @@ public:
    }
 
 
-   // Empties the acceleratin table.
-   void DeAccelerate()
+   // Returns the index of the last element of the list or MLIST_INVALID_INDEX if the list is empty.
+   MLISTINDEX GetLastIndex() const throw()
+   {
+      return( uiNumberOfMembers - 1 );
+   }
+
+
+   // Returns the number of the members of the list in units.
+   MUnit< typeMembers > GetUnits() const throw()
+   {
+      return( MUnit< typeMembers >( uiNumberOfMembers ) );
+   }
+
+
+   // Frees the acceleration table.
+   void DeAccelerate() const
    {
       if( NULL != ppListArray )
       {
          HeapFree( GetProcessHeap(), 0, ppListArray );
+
          ppListArray = NULL;
       }
    }
@@ -799,10 +774,10 @@ public:
             return;
          }
 
-         HeapFree( GetProcessHeap(), 0, ppListArray );
+         DeAccelerate();
       }
 
-      ppListArray = (typeMembers **)HeapAlloc( GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, uiNumberOfMembers * sizeof( typeMembers * ) );
+      ppListArray = (typeMembers**)HeapAlloc( GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS, uiNumberOfMembers * sizeof( typeMembers* ) );
 
       ObjectContainer* pObjectContainer = pHead;
       MLISTINDEX       uiCounter( 0 );
@@ -829,7 +804,7 @@ public:
 
    
    // Returns pointer to the array table holding the addresses of the pointers to the
-   // elements of the list in order of their indeces.
+   // elements of the list in order of their indices.
    typeMembers** GetArray()
    {
       if( !IsAccelerated() )
@@ -841,10 +816,9 @@ public:
    }
 
 
-   // Fast access to the list members - as fast as access to array. USE Accelerate
-   // member function before the first use of operator[], after the list has been mofified.
-   // The acces is ZERO based index - as usually in C++ array.
-   typeMembers *operator[]( const MLISTINDEX mliIndex ) const throw()
+   // Fast access to the list members - as fast as access to array.
+   // The access is ZERO based index - as usually in C++ array.
+   typeMembers* operator[]( const MLISTINDEX mliIndex ) const throw()
    {
       MASSERT( mliIndex < uiNumberOfMembers );
 
@@ -857,9 +831,17 @@ public:
    }
 
 
+   // Fast access to the list members - as fast as access to array.
+   // The access is ZERO based index - as usually in C++ array.
+   typeMembers* operator[]( const MUnit< typeMembers > uIndex ) const throw()
+   {
+      return( operator[]( (MLISTINDEX)uIndex.GetUnits() ) );
+   }
+
+
    // Returns pointer to the object in the Head of the list.
    // If the list is empty the function returns NULL;
-   typeMembers *GetHead() const throw()
+   typeMembers* GetHead() const throw()
    {
       return( NULL != pHead ? pHead->pObject : NULL );
    }
@@ -867,7 +849,7 @@ public:
 
    // Returns pointer to the object in the Tail of the list.
    // If the list is empty the function returns NULL;
-   typeMembers *GetTail() const throw()
+   typeMembers* GetTail() const throw()
    {
       return( NULL != pTail ? pTail->pObject : NULL );
    }
@@ -933,13 +915,8 @@ protected:
       pObjectContainer_A->pObject = ptrObjectB;
 
       
-      // deallocates acceleration
-      if( NULL != ppListArray )
-      {
-         HeapFree( GetProcessHeap(), 0, ppListArray );
-         
-         ppListArray = NULL;
-      }
+      // Free the array index.
+      DeAccelerate();
    }
 
 
@@ -989,6 +966,22 @@ public:
    }
 
 
+   class BaseExplorer
+   {
+   private:
+      const MLISTINDEX mliStart;
+      const MLISTINDEX mliEnd;
+
+   public:
+      BaseExplorer( const MLISTINDEX mliStart, const MLISTINDEX mliEnd ) : mliStart( mliStart ), mliEnd( mliEnd ) {}
+      ~BaseExplorer() {}
+
+      MLISTINDEX GetStart()                           const throw() { return( mliStart ); }
+      MLISTINDEX GetEnd()                             const throw() { return( mliEnd   ); }
+      bool       IsExceptionIndex( const MLISTINDEX ) const throw() { return( false ); }
+   };
+
+
    class PointerExplorer
    {
    private:
@@ -997,38 +990,43 @@ public:
       const typeMembers* ptmSearchFor;
 
    public:
-      MLISTINDEX GetStart() const { return( mliStart ); }
-      MLISTINDEX GetEnd()   const { return( mliEnd   ); }
+      MLISTINDEX GetStart()                           const throw() { return( mliStart ); }
+      MLISTINDEX GetEnd()                             const throw() { return( mliEnd   ); }
+      bool       IsExceptionIndex( const MLISTINDEX ) const throw() { return( false ); }
 
    public:
-      PointerExplorer( typename const typeMembers* ptmSearchFor, const MLISTINDEX mliStart, const MLISTINDEX mliEnd ) : ptmSearchFor( ptmSearchFor ), mliStart( mliStart ), mliEnd( mliEnd ) {}
+      PointerExplorer( const typeMembers* ptmSearchFor, const MLISTINDEX mliStart, const MLISTINDEX mliEnd ) : ptmSearchFor( ptmSearchFor ), mliStart( mliStart ), mliEnd( mliEnd ) {}
 
-      bool IsMatching( typename const typeMembers& tmMember ) const
+      bool IsMatching( const typeMembers& tmMember ) const
       {
          return( ptmSearchFor == &tmMember );
       }
    };
 
 
-   // Searches the list for member poineting the same object. Returns true/false, and a zero based index of found member when true.
+   // Searches the list for member pointing the same object. Returns true/false, and a zero based index of found member when true.
    // Pass pmliFoundZBIndex = NULL when the actual index is not required. The search is performed from the head to the tail starting 
-   // from position mliStart (zero based index) and complets with position mliEnd (i.e. inclusive) also zero based index.
+   // from position mliStart (zero based index) and completes with position mliEnd (i.e. inclusive) also zero based index.
    // The tExplorer is a type that must have bool tExplorer::IsMatching( const typeMembers& ) const member. The parameter tSearchFor
    // holds the data that the tExplorer uses for the compare operation within tExplorer::IsMatching( const typeMembers& ) const.
-   // The Explorer object must be loaded with the Starting and Ending value for the search within the list, where 0 is the beginning
-   // of the list and MLIST_LAST_INDEX is the ultimate end, i.e. Start = 0 - is the first index, and End = MLIST_LAST_INDEX is "End of the List".
+   // The Explorer object must be loaded with the Starting and Ending value for the search within the list, where 0 is the first element index, 
+   // and ElementCount-1 is the last, MLIST_INVALID_INDEX is accepted indicating "End of the List".
    template< class tExplorer > bool Find_H2T( MLISTINDEX* pmliFoundZBIndex, const tExplorer &teExplorer ) const
    {
       MLISTINDEX mliIndex = 0;
       const MLISTINDEX mliStart( teExplorer.GetStart() );
       const MLISTINDEX mliEnd(   teExplorer.GetEnd()   );
 
-      MASSERT( !(mliStart > mliEnd) );
+      if( mliStart > mliEnd )
+      {
+         return( false );
+      }
 
       for( ObjectContainer* pObjectContainer = pHead; NULL != pObjectContainer; pObjectContainer = pObjectContainer->pNext, mliIndex++ )
       {
          if( mliIndex < mliStart ) { continue; }
          if( mliIndex > mliEnd   ) { break;    }
+         if( teExplorer.IsExceptionIndex( mliIndex ) ) { continue; }
 
          if( teExplorer.IsMatching( *pObjectContainer->pObject ) )
          {
@@ -1045,9 +1043,9 @@ public:
    }
 
    
-   // Searches the list for member poineting the same object. Returns true/false, and a zero based index of found member when true.
+   // Searches the list for member pointing the same object. Returns true/false, and a zero based index of found member when true.
    // Pass pmliFoundZBIndex = NULL when the actual index is not required. The search is performed from the head to the tail starting 
-   // from position mliStart (zero based  index) and complets with position mliEnd (i.e. inclusive) also zero based index.
+   // from position mliStart (zero based  index) and completes with position mliEnd (i.e. inclusive) also zero based index.
    bool Find_H2T( MLISTINDEX* pmliFoundZBIndex, const typeMembers &tSearchFor, const MLISTINDEX mliStart, const MLISTINDEX mliEnd ) const
    {
       MASSERT( !(mliStart > mliEnd) );
@@ -1074,9 +1072,9 @@ public:
    }
 
 
-   // Searches the list for member poineting the same object. Returns true/false, and a zero based index of found member when true.
+   // Searches the list for member pointing the same object. Returns true/false, and a zero based index of found member when true.
    // Pass pmliFoundZBIndex = NULL when the actual index is not required. The search is performed from the head to the tail starting 
-   // from position mliStart (zero based  index) and complets with position mliEnd (i.e. inclusive) also zero based index.
+   // from position mliStart (zero based  index) and completes with position mliEnd (i.e. inclusive) also zero based index.
    bool Find_H2T( MLISTINDEX* pmliFoundZBIndex, const typeMembers* ptSearchFor, const MLISTINDEX mliStart, const MLISTINDEX mliEnd ) const
    {
       MASSERT( !(mliStart > mliEnd) );
@@ -1104,9 +1102,9 @@ public:
 
 
 
-   // Searches the list for member smaller the paramer. Returns Zero based index of found member and Invalid in not found.
+   // Searches the list for member smaller the parameter. Returns Zero based index of found member and Invalid in not found.
    // The search is performed from head to tail starting from position mliStart, which is zero based index as well, and
-   // compleating with position mliEnd (i.e. inclusive), which is zero based index too.
+   // completing with position mliEnd (i.e. inclusive), which is zero based index too.
    bool Find_Smaller_H2T( MLISTINDEX* pmliFoundZBIndex, const typeMembers &tSearchFor, const MLISTINDEX mliStart, const MLISTINDEX mliEnd ) const
    {
       MASSERT( !(mliStart > mliEnd) );
@@ -1133,17 +1131,17 @@ public:
    }
 
 
-   // Searches the list for member smaller the paramer. Returns Zero based index of found member and Invalid in not found.
+   // Searches the list for member smaller the parameter. Returns Zero based index of found member and Invalid in not found.
    // The search is performed from head to tail starting from position mliStart, which is zero based index as well, and
-   // compleating with position mliEnd (i.e. inclusive), which is zero based index too.
+   // completing with position mliEnd (i.e. inclusive), which is zero based index too.
    // The Comparator type must have the methods bool IsSmaller( const typeMembers& ), MLISTINDEX GetStart() const; MLISTINDEX GetEnd() const.
    template< class tComparator > bool Find_Smaller_H2T( MLISTINDEX* pmliFoundZBIndex, const tComparator &tcComparator ) const
    {
-      MASSERT( !(mliStart > mliEnd) );
-
       MLISTINDEX mliIndex( 0 );
       const MLISTINDEX mliStart( tcComparator.GetStart() );
       const MLISTINDEX mliEnd(   tcComparator.GetEnd()   );
+
+      MASSERT( !(mliStart > mliEnd) );
 
       for( ObjectContainer* pObjectContainer = pHead; NULL != pObjectContainer; pObjectContainer = pObjectContainer->pNext, mliIndex++ )
       {
@@ -1170,11 +1168,11 @@ public:
    // is ZERO based index and mliRotationGroupCount is the number of elements to be rotated. The mliPositionsToShift
    // parameter gives the number of positions that the rotation group members are to be shifted. The shift is performed
    // towards the head of the list. When an element is due to pass beyond the head border (mliIndexFirst) it is set
-   // to the end of the rotation group. After call to this function the list may be deaccelerated and the enumeraton
-   // invalidated or not depending wether rotation was applied or not.
+   // to the end of the rotation group. After call to this function the list may be un-accelerated and the enumeration
+   // invalidated or not depending whether rotation was applied or not.
    //
    // Example: MList< typename >::RotateToHead( 7, 29, 3 );
-   // the element that has zerobased index 7 before the function call will be moved to zero based position 33,
+   // the element that has zero-based index 7 before the function call will be moved to zero based position 33,
    // ZBI{ BC[8] -> AC[34]}; ZBI{ BC[9] -> AC[35]}; ZBI{ BC[10] -> AC[7]}; ....
    //
    // If the mliIndexFirst is out of the limits of the list - no operation will be performed.
@@ -1200,7 +1198,7 @@ public:
          return;
       }
 
-      // Notmalize the incomming parameters
+      // Normalize the incoming parameters
       *const_cast< MLISTINDEX* >( &mliRotationGroupCount ) = min( mliRotationGroupCount, GetCount() - mliIndexFirst );
       *const_cast< MLISTINDEX* >( &mliPositionsToShift   ) = mliPositionsToShift % mliRotationGroupCount;
       *const_cast< MLISTINDEX* >( &mliIndexFirst         ) = mliIndexFirst + 1;
@@ -1219,11 +1217,11 @@ public:
    // is ZERO based index and mliRotationGroupCount is the number of elements to be rotated. The mliPositionsToShift
    // parameter gives the number of positions that the rotation group members are to be shifted. The shift is performed
    // towards the tail of the list. When an element is due to pass beyond the tail border (mliIndexFirst + mliRotationGroupCount)
-   // it is set to the front of the rotation group. After call to this function the list may be deaccelerated and the enumeraton
-   // invalidated or not depending wether rotation was applied or not.
+   // it is set to the front of the rotation group. After call to this function the list may be un-accelerated and the enumeration
+   // invalidated or not depending whether rotation was applied or not.
    //
-   // Example: MList< typename >::RotateToTail( 7, 29, 3 );
-   // the element that has zerobased index 7 before the function call will be moved to zero based position 10,
+   // Example: MList< type-name >::RotateToTail( 7, 29, 3 );
+   // the element that has zero-based index 7 before the function call will be moved to zero based position 10,
    // ZBI{ BC[8] -> AC[11]}; ZBI{ BC[9] -> AC[12]}; ...; ZBI{ BC[36] -> AC[7]};
    //
    // If the mliIndexFirst is out of the limits of the list - no operation will be performed.
@@ -1239,7 +1237,7 @@ public:
       if( 0 == mliRotationGroupCount )         { return; }
       if( IsEmpty() )                          { return; }
 
-      // Notmalize the incomming parameters
+      // Normalize the incoming parameters
       *const_cast< MLISTINDEX* >( &mliRotationGroupCount ) = min( mliRotationGroupCount, GetCount() - mliIndexFirst );
       *const_cast< MLISTINDEX* >( &mliPositionsToShift   ) = mliPositionsToShift % mliRotationGroupCount;
       *const_cast< MLISTINDEX* >( &mliIndexFirst         ) = mliIndexFirst + 1;
@@ -1283,8 +1281,8 @@ protected:
       // Find the first ObjectContainer from the group to be rotated.
       ObjectContainer* pObjectContainer( pObjectContainer_Pre_RotGroup_Member->pNext );
 
-      MList< MList< typeMembers >::ObjectContainer > listObjectContainersA;
-      MList< MList< typeMembers >::ObjectContainer > listObjectContainersB;
+      MList< ObjectContainer > listObjectContainersA;
+      MList< ObjectContainer > listObjectContainersB;
 
 
       for( MLISTINDEX mliIndex = 0; mliIndex < mliPositionsToShift; mliIndex++ )
@@ -1333,16 +1331,54 @@ protected:
       pHead->pPrevious = NULL;
 
 
-      // deallocates acceleration
-      if( NULL != ppListArray ) { HeapFree( GetProcessHeap(), 0, ppListArray ); ppListArray = NULL; }
+      // Free the array index.
+      DeAccelerate();
    }
 
 
 public:
+   // The AddMembers( parameters ) function transfers a numbers of members from the donor list to this list.
+   // The function returns reference to this.
+   // uiDonorIndexFirst - zero based index of the first element in the donor list to be transferred to this list.
+   // uiMembersToMove   - the number of members to be transferred from the donor to this list.
+   // uiInsertAtIndex   - zero based index of the position where the first transferred member will be positioned in
+   //                     this list. The remaining of the transferred members will be positioned after it, effectively 
+   //                     inserting the transferred members of the donor list into this list at position uiInsertAtIndex.
+   MList< typeMembers >& TransferMembers( MList< typeMembers > &listDonor, MLISTINDEX uiDonorIndexFirst, MLISTINDEX uiMembersToMove, MLISTINDEX uiInsertAtIndex )
+   {
+      if( uiInsertAtIndex > uiNumberOfMembers )
+      {
+         // Append at the end of this list.
+         uiInsertAtIndex = uiNumberOfMembers;
+      }
+
+      if( uiDonorIndexFirst >= listDonor.uiNumberOfMembers )
+      {
+         // Nothing to transfer.
+         return( *this );
+      }
+
+      if( (uiDonorIndexFirst + uiMembersToMove) > listDonor.uiNumberOfMembers )
+      {
+         uiMembersToMove = listDonor.uiNumberOfMembers - uiDonorIndexFirst;
+      }
+
+      MLISTINDEX uiCounter;
+
+      for( uiCounter = 0; uiCounter < uiMembersToMove; uiCounter++ )
+      {
+         AddMember( listDonor.RemoveMember( uiDonorIndexFirst ), uiInsertAtIndex + uiCounter );
+      }
+
+      return( *this );
+   }
+
+
+
    // The AddMembers( parameters ) function removes numbers of members from the donor list and adds them to this.
-   // The function returns true if the operation is compleated successfully and false if not. If
+   // The function returns true if the operation is completed successfully and false if not. If
    // the function return false none of the both listes are changed. The conditions for failture are
-   // incorrect incomming parametes such as:
+   // incorrect incoming parametes such as:
    // 1. the uiDonorFirst is neither of the predefined ePosition[ Head, Tail, This] nore a valid index value -
    // between 0 and (uiNumberOfMembers - 1) for the donor list.
    // 2. if the parameter uiCountToMove added to the estemated first member to be removed outdistance
@@ -1424,5 +1460,70 @@ public:
       {
          listExtracted.AddTail( RemoveMember( mliFirst ) );
       }
+   }
+};
+
+
+template< class typeMembers, class ClassLock, class EntranceLock >
+class MListThreadSafe : private MList< typeMembers >
+{
+   const ClassLock lockAccess;
+
+public:
+   // The default constructor allows use of own access control object, e.g.
+   // MListThreadSafe< int, MLockCS, MLock > list;
+   MListThreadSafe()
+   {
+   }
+
+
+   // The access lock constructor is designed to be used with reference access lock object, e.g.
+   // MLockCS lockCommonAccessForMultipleObjetcs;
+   // MListThreadSafe< int, MLockCS&, MLock > list( lockCommonAccessControlForMultipleInstancesAndObjects ); - notice the reference.
+   MListThreadSafe( const ClassLock lockAccess ) : lockAccess( lockAccess )
+   {
+   }
+
+
+   virtual ~MListThreadSafe()
+   {
+   }
+
+
+   typeMembers* AddTail( typeMembers* pNewTailObject )
+   {
+      EntranceLock lock( lockAccess );
+
+      return( MList< typeMembers >::AddTail( pNewTailObject ) );
+   }
+
+
+   typeMembers* operator[]( const MLISTINDEX mliIndex ) const throw()
+   {
+      EntranceLock lock( lockAccess );
+
+      return( MList< typeMembers >::operator[]( mliIndex ) );
+   }
+
+
+   typeMembers* operator[]( const MUnit< typeMembers > uIndex ) const throw()
+   {
+      EntranceLock lock( lockAccess );
+
+      return( MList< typeMembers >::operator[]( uIndex ) );
+   }
+
+
+   MLISTINDEX GetCount() const throw()
+   {
+      EntranceLock lock( lockAccess );
+
+      return( MList< typeMembers >::GetCount() );
+   }
+
+
+   ClassLock& GetLockObject() const
+   {
+      return( lockAccess );
    }
 };

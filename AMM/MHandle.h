@@ -2,50 +2,82 @@
 //
 // MHandle.h: interface for the MHandle class.
 //
-// © Copyright 2007 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
-// 
+//                   ATOMIC MEMORY MODEL - Implementation Example 'Phase One'
 //
-//************************************************************************************
+// © Copyright 2007 - 2014 by Miroslav Bonchev Bonchev. All rights reserved.
+//
+//
+//******************************************************************************************************
+
+
+// Open Source License – The MIT License
+//
+//
+// Atomic Memory Model © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+// associated  documentation files  (the "Software"),  to deal  in the Software without restriction,
+// including  without  limitation the rights  to use,  copy,  modify,  merge,  publish,  distribute,
+// sublicense,  and/or sell copies of the Software,  and to permit persons to  whom the  Software is
+// furnished to do so, subject to the following conditions:
+//
+// The  above  copyright  notice  and  this  permission  notice  shall be  included in all copies or
+// substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+// NOT  LIMITED  TO  THE  WARRANTIES  OF  MERCHANTABILITY,  FITNESS  FOR  A  PARTICULAR  PURPOSE AND
+// NONINFRINGEMENT.  IN NO EVENT SHALL  THE  AUTHORS  OR  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY,  WHETHER IN AN ACTION OF CONTRACT,  TORT OR OTHERWISE,  ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+//__________________________________________________________________________________________________
+// This software is OSI Certified Open Source Software.
+// OSI Certified is a certification mark of the Open Source Initiative.
 
 
 #pragma once
 
 
-#include "Common.h"
-#include "WinInet.h"
+#include "CommonAMM.h"
 
 
-class MHandle
+class MHandle;
+
+
+class MRefHandle
 {
-private:
+protected:
    HANDLE hHandle;
 
 public:
-   MHandle() : hHandle( INVALID_HANDLE_VALUE )
+   MRefHandle() : hHandle( INVALID_HANDLE_VALUE )
    {
    }
 
-   MHandle( const HANDLE& hHandle ) : hHandle( hHandle )
+   MRefHandle( HANDLE hHandle ) : hHandle( hHandle )
    {
    }
 
-private:
-   //does not work
-   MHandle( MHandle& mHandle ) : hHandle( INVALID_HANDLE_VALUE )
+   MRefHandle( MRefHandle& mHandle ) : hHandle( mHandle.hHandle )
    {
-      DuplicateHandle( GetCurrentProcess(), mHandle.hHandle, GetCurrentProcess(), &hHandle, 0, TRUE, DUPLICATE_SAME_ACCESS );
    }
 
-   //does not work
-   MHandle& operator=( MHandle& mHandle )
+   MRefHandle( MHandle& mHandle );
+
+
+   MRefHandle& operator=( MRefHandle& mHandle )
    {
-      DuplicateHandle( GetCurrentProcess(), mHandle.hHandle, GetCurrentProcess(), &hHandle, 0, TRUE, DUPLICATE_SAME_ACCESS );
+      Close();
+
+      this->hHandle = mHandle.hHandle;
 
       return( *this );
    }
 
-public:
-   MHandle& operator=( const HANDLE& handle )
+   MRefHandle& operator=( MHandle& mHandle );
+
+   MRefHandle& operator=( HANDLE& handle )
    {
       Close();
 
@@ -54,20 +86,13 @@ public:
       return( *this );
    }
 
-   ~MHandle()
+   virtual ~MRefHandle()
    {
       Close();
    }
 
-   void Close()
+   virtual void Close()
    {
-      if( !IsValid() )
-      {
-         return;
-      }
-      
-      CloseHandle( hHandle );
-
       hHandle = INVALID_HANDLE_VALUE;
    }
 
@@ -96,33 +121,70 @@ public:
       
       return( NULL != hHandle );
    }
+};
 
-   bool HasMoreData() const
+
+class MHandle : public MRefHandle
+{
+public:
+   MHandle()
    {
-      LARGE_INTEGER fpFileSize = { 0 };
-      LARGE_INTEGER fpFilePointer;
-      
-      SetFilePointerEx( hHandle, fpFileSize, &fpFilePointer, FILE_CURRENT );
-
-      GetFileSizeEx( hHandle, &fpFileSize );
-
-      return( fpFilePointer.QuadPart < fpFileSize.QuadPart );
    }
 
-   HANDLE ExportHandle()
+   MHandle( HANDLE hHandle ) : MRefHandle( hHandle )
    {
-      HANDLE h = hHandle;
+   }
+
+   MHandle( MRefHandle& mHandle ) : MRefHandle( mHandle )
+   {
+   }
+
+public:
+   MHandle& operator=( HANDLE handle )
+   {
+      Close();
+
+      this->hHandle = handle;
+
+      return( *this );
+   }
+
+   virtual ~MHandle()
+   {
+      Close();
+   }
+
+   virtual void Close()
+   {
+      if( !IsValid() )
+      {
+         return;
+      }
+      
+#ifdef _WIN32
+      CloseHandle( hHandle );
+#else
+      fclose( hHandle );
+#endif
 
       hHandle = INVALID_HANDLE_VALUE;
-
-      return( h );
-   }
-
-   void SetNoCloseHandle() const
-   {
-      *const_cast< HANDLE* >( &hHandle ) = INVALID_HANDLE_VALUE;
    }
 };
+
+
+inline MRefHandle::MRefHandle( MHandle& mHandle ) : hHandle( (HANDLE)mHandle )
+{
+}
+
+
+inline MRefHandle& MRefHandle::operator=( MHandle& mHandle )
+{
+    Close();
+
+    this->hHandle = (HANDLE)mHandle;
+
+    return( *this );
+}
 
 
 class MModuleHandle
@@ -137,13 +199,13 @@ public:
    }
 
 
-   MModuleHandle( const HMODULE& hHandle ) : hHandle( hHandle )
+   MModuleHandle( HMODULE hHandle ) : hHandle( hHandle )
    {
    }
 
 
 public:
-   MModuleHandle& operator=( const HMODULE& handle )
+   MModuleHandle& operator=( HMODULE handle )
    {
       Close();
 
@@ -166,7 +228,9 @@ public:
          return;
       }
       
+#ifdef _WIN32
       FreeLibrary( hHandle );
+#endif
 
       hHandle = NULL;
    }
@@ -191,193 +255,5 @@ public:
       hHandle = NULL;
 
       return( h );
-   }
-};
-
-
-class MInternetHandle
-{
-private:
-   HINTERNET hHandle;
-
-
-public:
-   MInternetHandle() : hHandle( NULL )
-   {
-   }
-
-
-   MInternetHandle( const HINTERNET& hHandle ) : hHandle( hHandle )
-   {
-   }
-
-
-public:
-   MInternetHandle& operator=( const HINTERNET& handle )
-   {
-      Close();
-
-      this->hHandle = handle;
-
-      return( *this );
-   }
-
-
-   ~MInternetHandle()
-   {
-      Close();
-   }
-
-
-   void Close()
-   {
-      if( !IsValid() )
-      {
-         return;
-      }
-      
-      InternetCloseHandle( hHandle );
-
-      hHandle = NULL;
-   }
-
-
-   operator HINTERNET () const throw()
-   {
-      return( hHandle );
-   }
-
-
-   bool IsValid() const
-   {
-      return( NULL != hHandle );
-   }
-
-
-   HINTERNET ExportHandle()
-   {
-      HINTERNET h = hHandle;
-
-      hHandle = NULL;
-
-      return( h );
-   }
-};
-
-
-class MFindHandle
-{
-   HANDLE hFind;
-
-
-public:
-   MFindHandle() :  hFind( INVALID_HANDLE_VALUE )
-   {
-   }
-
-
-   MFindHandle( const HANDLE hFind ) : hFind( hFind )
-   {
-   }
-   
-
-   ~MFindHandle()
-   {
-      Close();
-   }
-
-
-   void Close()
-   {
-      if( IsValid() )
-      {
-         FindClose( hFind );
-
-         hFind = INVALID_HANDLE_VALUE;
-      }
-   }
-   
-
-   bool IsValid() const
-   {
-      return( (INVALID_HANDLE_VALUE != hFind) && (NULL != hFind) );
-   }
-
-
-   bool FindNextFile( WIN32_FIND_DATA& wfd )
-   {
-      return( 0 != ::FindNextFile( hFind, &wfd ) );
-   }
-};
-
-
-class MChangeHandle
-{
-   HANDLE hChange;
-
-
-public:
-   MChangeHandle() : hChange( INVALID_HANDLE_VALUE )
-   {
-   }
-
-
-   MChangeHandle( const HANDLE hChange ) : hChange( hChange )
-   {
-   }
-   
-
-   ~MChangeHandle()
-   {
-      Close();
-   }
-
-
-   HANDLE operator=( const HANDLE& h_change )
-   {
-      Close();
-
-      this->hChange = h_change;
-
-      return( this->hChange );
-   }
-
-
-   void Close()
-   {
-      if( IsValid() )
-      {
-         FindCloseChangeNotification( hChange );
-
-         hChange = INVALID_HANDLE_VALUE;
-      }
-   }
-   
-
-   bool IsValid() const
-   {
-      return( (INVALID_HANDLE_VALUE != hChange) && (NULL != hChange) );
-   }
-
-
-   bool FindNextChange()
-   {
-      return( 0 != ::FindNextChangeNotification( hChange ) );
-   }
-
-
-   HANDLE ExportHandle()
-   {
-      HANDLE h = hChange;
-
-      hChange = INVALID_HANDLE_VALUE;
-
-      return( h );
-   }
-
-
-   operator const HANDLE () const
-   {
-      return( hChange );
    }
 };

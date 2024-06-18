@@ -4,7 +4,7 @@
 //
 //                   ATOMIC MEMORY MODEL - Implementation Example 'Phase One'
 //
-// © Copyright 2001 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
+// © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev. All rights reserved.
 //
 //
 //******************************************************************************************************
@@ -13,7 +13,7 @@
 // Open Source License – The MIT License
 //
 //
-// {your product} uses the Atomic Memory Model by Miroslav Bonchev Bonchev.
+// Atomic Memory Model © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated  documentation files  (the "Software"),  to deal  in the Software without restriction,
@@ -45,84 +45,84 @@
 #include <time.h>
 #include <float.h>
 #include "ResId.h"
-#include "oleauto.h"
 #include <stdio.h>
-#include "shlobj.h"
+
+#ifdef _WIN32
+   #include "oleauto.h"
+   #include "shlobj.h"
+   #include "wininet.h"
+   #include "atlbase.h"
+   #include "atltypes.h"
+   #include "shobjidl_core.h"
+#endif
 
 
-#pragma warning( push )
-#pragma warning( disable : 4290 )   // warning C4290: C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+#ifdef _WIN32
+   #pragma warning( push )
+   #pragma warning( disable : 4290 )   // warning C4290: C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+#endif
 
 
-extern const unsigned __int64 primes4000001[];
-
-
-class MBStr
-{
-private:
-   BSTR bstr;
-
-public:
-   MBStr() throw()
+#ifdef _WIN32
+   class MBStr
    {
-      bstr = SysAllocString( L"" );
-   }
+   private:
+      BSTR bstr;
 
-   MBStr( const OLECHAR* ochText ) throw()
-   {
-      bstr = SysAllocString( ochText );
-   }
+   public:
+      MBStr() throw()
+      {
+         bstr = SysAllocString( L"" );
+      }
 
-   ~MBStr()
-   {
-      SysFreeString( bstr );
-   }
+      MBStr( const OLECHAR* ochText ) throw()
+      {
+         bstr = SysAllocString( ochText );
+      }
 
-   MBStr operator=( const BSTR bstrText )
-   {
-      SysFreeString( bstr );
+      ~MBStr()
+      {
+         SysFreeString( bstr );
+      }
 
-      bstr = SysAllocString( bstrText );
+      MBStr operator=( const BSTR bstrText )
+      {
+         SysFreeString( bstr );
 
-      return( *this );
-   }
+         bstr = SysAllocString( bstrText );
 
-   MBStr operator=( const MBStr& bstrText )
-   {
-      SysFreeString( bstr );
+         return( *this );
+      }
 
-      bstr = SysAllocString( bstrText.bstr );
+      MBStr operator=( const MBStr& bstrText )
+      {
+         SysFreeString( bstr );
 
-      return( *this );
-   }
+         bstr = SysAllocString( bstrText.bstr );
 
-   operator const wchar_t*() const throw() { return(  bstr ); }
-   operator const BSTR()     const throw() { return(  bstr ); }
+         return( *this );
+      }
 
-   operator BSTR*()                throw() { return( &bstr ); }
-   operator const BSTR*()    const throw() { return( &bstr ); }
+      operator const wchar_t*() const throw() { return(  bstr ); }
+      operator const BSTR()     const throw() { return(  bstr ); }
 
-   operator BSTR&()                throw() { return( bstr ); }
-   operator const BSTR&()    const throw() { return( bstr ); }
+      operator BSTR*()                throw() { return( &bstr ); }
+      operator const BSTR*()    const throw() { return( &bstr ); }
 
-   UINT GetLength() const throw()
-   {
-      return( SysStringLen( bstr ) );
-   }
-};
+      operator BSTR&()                throw() { return( bstr ); }
+      operator const BSTR&()    const throw() { return( bstr ); }
 
-
-// Dll imports
-typedef __declspec(dllimport) unsigned long (WINAPI *AOF_GetLanguageId)();
-#define FUNCTION_NAME_GET_GEDAULT_LANGUAGE_ID "AOF_GetLanguageId"
-
-
-extern HMODULE hDefaultTextResourceModule;
-extern DWORD   dwDefaultLanguageId;
+      UINT GetLength() const throw()
+      {
+         return( SysStringLen( bstr ) );
+      }
+   };
 
 
-#define MSTRING_LAST_POSITION (MUI)-1
-#define MSTRING_ALL_CHARACTERS (MUI)-1
+   extern DWORD dwDefaultLanguageId;
+#endif
+
+
 #define MSTRING_ITEM_NOT_FOUND (MUI)-1
 
 
@@ -140,21 +140,23 @@ public:
    mutable NumericBase eNumericBase;
 
 public:
-   enum TypeSystemError { eGetSystemError };
-   enum TypeInternetError { eGetInternetError };
    enum StringFromMemory{ SFM };
    enum FromFormat{ FF };
+
+#ifdef _WIN32
+   enum TypeSystemError { eGetSystemError };
+   enum TypeInternetError { eGetInternetError };
    enum FromTypeBSTR{ FromBSTR };
    enum StringFromMuduleInfo{ SFMI };
+#endif
 
 
 public:
-
    MStringEx()
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
    }
 
 
@@ -191,7 +193,7 @@ public:
 
       Transfer( maString );
 
-      pData[maString.GetSize().GetUnits()] = 0;
+      this->pData[maString.GetSize().GetUnits()] = 0;
    }
 
 
@@ -221,47 +223,20 @@ public:
 
       Transfer( maString );
 
-      pData[maString.GetSize().GetUnits()] = 0;
-   }
-
-
-   MStringEx( StringFromMemory, const MMemory< tChar >& memString, const bool bSearchForZeroEnd )
-      :  MemoryPH< tChar >( MUnit< tChar >( bSearchForZeroEnd ? 0 : memString.GetSizeUnits() + 1 ) ),
-         eNumericBase( Decimal )
-   {
-      const ShellMemory< tChar > maString( (tChar*)memString.GetMemory(), MUnit< tChar >( memString.GetSizeUnits() ) );
-
-      if( bSearchForZeroEnd )
-      {
-         for( MUnit< tChar > muChar; muChar < maString.GetSize(); muChar++ )
-         {
-            if( 0 == maString[muChar] )
-            {
-               muChar++;
-
-               ReAllocate( muChar );
-               
-               Transfer( maString.SubMemory( MUnit< tChar >( 0 ), muChar ) );
-
-               return;
-            }
-         }
-
-         ReAllocate( maString.GetSize() + 1 );
-      }
-
-      Transfer( maString );
-
-      pData[maString.GetSize().GetUnits()] = 0;
+      this->pData[maString.GetSize().GetUnits()] = 0;
    }
 
 
    MStringEx( const tChar tchChar )
-      :  MemoryPH< tChar >( MUnit< tChar >( 2 ) ),
+      :  MemoryPH< tChar >( MUnit< tChar >( 0 == tchChar ? 1 : 2 ) ),
          eNumericBase( Decimal )
    {
-      *pData       = tchChar;
-      *(pData + 1) = 0;
+      *this->pData = tchChar;
+
+      if( 0 != tchChar )
+      {
+         *(this->pData + 1) = 0;
+      }
    }
 
 
@@ -269,7 +244,7 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       if( NULL != pchString )
       {
@@ -277,16 +252,17 @@ public:
 
          for( ; 0 != pchString[muiIndex]; muiIndex++ );
 
-         ReAllocateTransfer( ShellMemory< tChar >( (tChar*)pchString, MUnit< tChar >( muiIndex + 1 ) ) );
+         this->ReAllocateTransfer( ShellMemory< tChar >( (tChar*)pchString, MUnit< tChar >( muiIndex + 1 ) ) );
       }
    }
 
 
+#ifdef _WIN32
    MStringEx( const FromTypeBSTR, const BSTR bstrString )
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       if( NULL != bstrString )
       {
@@ -294,45 +270,66 @@ public:
 
          if( IsWchar() )
          {
-            ExchangeMemory< wchar_t >( strThis );
+            this->ExchangeMemory< wchar_t >( strThis );
          }
          else
          {
             MStringEx< char > strThisChar( strThis.GetAsMultiByte() );
 
-            ExchangeMemory< char >( strThisChar );
+            this->ExchangeMemory< char >( strThisChar );
          }
       }
    }
+#endif
 
 
    MStringEx( const FromFormat, const tChar *pchSpecifier, ... )
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       MASSERT( NULL != pchSpecifier );
 
       if( NULL != pchSpecifier )
       {
          va_list arglist;
+
+#ifdef _WIN32
          va_start( arglist, pchSpecifier );
-
          ReAllocate( MUnit< tChar >( (IsWchar() ? _vscwprintf( (const wchar_t*)pchSpecifier, arglist ) : _vscprintf( (const char*)pchSpecifier, arglist )) + 1 ) );
+         va_end( arglist );
+#else
+         MUnit< tChar > muRequredSize;
+         va_start( arglist, pchSpecifier );
+         if( IsWchar() ) {
+            int lenTest = 1024;
+            wchar_t *p = new wchar_t[lenTest];
+            while( (MUI)-1 == (muRequredSize = MUnit< tChar >( vswprintf( p, lenTest, (const wchar_t*)pchSpecifier, arglist ) )) ) {
+               va_end( arglist );
+               va_start( arglist, pchSpecifier );
+               delete[] p;
+               lenTest += 1024;
+               p = new wchar_t[lenTest]; }
+            delete[] p; }
+         else { muRequredSize = MUnit< tChar >( _vscprintf( (const char*)pchSpecifier, arglist ) ); }
+         va_end( arglist );
+         this->ReAllocate( muRequredSize + 1 );
+#endif      
 
-         IsWchar() ? vswprintf_s( (wchar_t*)pData, muSize.GetUnits(), (const wchar_t*)pchSpecifier, arglist ) : vsprintf_s( (char*)pData, muSize.GetUnits(), (const char*)pchSpecifier, arglist );
-
+         va_start( arglist, pchSpecifier );
+         IsWchar() ? vswprintf_s( (wchar_t*)this->pData, this->muSize.GetUnits(), (const wchar_t*)pchSpecifier, arglist ) : vsprintf_s( (char*)this->pData, this->muSize.GetUnits(), (const char*)pchSpecifier, arglist );
          va_end( arglist );
       }
    }
 
 
+#ifdef _WIN32
    MStringEx( ResId ResId )
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       LoadString( ResId, hDefaultTextResourceModule, 0 );
    }
@@ -342,7 +339,7 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       LoadString( ResId, hmModule, 0 );
    }
@@ -352,7 +349,7 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       LoadString( ResId, hmModule, wLanguage );
    }
@@ -362,55 +359,18 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       const MStringEx< tChar > strSpecifier( wrSpecifier );
 
       va_list arglist;
       va_start( arglist, wrSpecifier );
-
       ReAllocate( MUnit< tChar >( (IsWchar() ? _vscwprintf( (const wchar_t*)strSpecifier.pData, arglist ) : _vscprintf( (const char*)strSpecifier.pData, arglist )) + 1 ) );
-
-      IsWchar() ? vswprintf_s( (wchar_t*)pData, muSize.GetUnits(), (const wchar_t*)strSpecifier.pData, arglist ) : vsprintf_s( (char*)pData, muSize.GetUnits(), (const char*)strSpecifier.pData, arglist );
-
       va_end( arglist );
-   }
-
-
-   MStringEx( const MHandle& hStream )
-      :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
-         eNumericBase( Decimal )
-   {
-      *pData = 0;
-
-
-      if( !hStream.IsValid() )
-      {
-         MAtomException::ExceptionInvaldCall( ERROR_INVALID_HANDLE );
-      }
-
-
-      MemoryPH< tChar > memString( MUnit< tChar >( 8192 ) );
-      DWORD dwBytesRead( 0 );
-
-      while( ReadFile( hStream, (void*)memString.GetMemory(), memString.GetSize().InBytes32(), &dwBytesRead, NULL ) )
-      {
-         if( 0 == dwBytesRead )
-         {
-            return;
-         }
-
-
-         MStringEx< tChar > strString( MStringEx< tChar >::SFM, memString, true );
-
-         if( 0 == strString.GetLength() )
-         {
-            return;
-         }
-
-
-         *this += strString;
-      }
+         
+      va_start( arglist, wrSpecifier );
+      IsWchar() ? vswprintf_s( (wchar_t*)this->pData, this->muSize.GetUnits(), (const wchar_t*)strSpecifier.pData, arglist ) : vsprintf_s( (char*)this->pData, this->muSize.GetUnits(), (const char*)strSpecifier.pData, arglist );
+      va_end( arglist );
    }
 
 
@@ -418,7 +378,7 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
 
       MemoryPH< TCHAR > memModuleFileName( MUnit< TCHAR >( 40000 ) );
@@ -461,7 +421,7 @@ public:
          UINT     uiBytes;
          LPVOID   lpBuffer;
 
-         MStringEx< TCHAR > strDataRequest( string::FF, TEXT( "\\StringFileInfo\\%04x%04x\\%s" ), lpTranslate[dwIndexCP].wLanguage, lpTranslate[dwIndexCP].wCodePage, strModuleInfo );
+         MStringEx< TCHAR > strDataRequest( MStringEx< TCHAR >::FF, TEXT( "\\StringFileInfo\\%04x%04x\\%s" ), lpTranslate[dwIndexCP].wLanguage, lpTranslate[dwIndexCP].wCodePage, strModuleInfo );
 
          if( VerQueryValue( memVersionInfo.pData, strDataRequest, &lpBuffer, &uiBytes ) )
          {
@@ -473,18 +433,70 @@ public:
 
       throw( MStringExException( MStringExException::CouldNotLoadResource ) );
    }
+#endif
 
 
-   // the value is the length of the string without the ending zero, so for empty string ask for 0.
+   MStringEx( const MHandle& hStream )
+      :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
+         eNumericBase( Decimal )
+   {
+      *this->pData = 0;
+
+
+      if( !hStream.IsValid() )
+      {
+         MAtomException::ExceptionInvaldCall( ERROR_INVALID_HANDLE );
+      }
+
+
+      MemoryPH< tChar > memString( MUnit< tChar >( 8192 ) );
+      DWORD dwBytesRead( 0 );
+
+      while( ReadFile( hStream, (void*)memString.GetMemory(), memString.GetSize().InBytes32(), &dwBytesRead, NULL ) )
+      {
+         if( 0 == dwBytesRead )
+         {
+            return;
+         }
+
+
+         MStringEx< tChar > strString( MStringEx< tChar >::SFM, memString, true );
+
+         if( 0 == strString.GetLength() )
+         {
+            return;
+         }
+
+
+         *this += strString;
+      }
+   }
+
+
+protected:
+   // The value is the length of the string without the ending zero, so for empty string ask for 0.
    MStringEx( const MUnit< tChar >& mutChars )
       :  MemoryPH< tChar >( mutChars + 1 ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
-      *(pData + GetLength()) = 0;
+      *(this->pData + GetLength()) = 0;
+   }
+
+   
+public:
+   // The value is the length of the string without the ending zero, so for empty string ask for 0.
+   // tchInitialFillUp must be a valid character and must NOT be zero.
+   MStringEx( const MUnit< tChar >& mutChars, const tChar tchInitialFillUp )
+      :  MemoryPH< tChar >( mutChars + 1, 0 != tchInitialFillUp ? tchInitialFillUp : 1 ),
+         eNumericBase( Decimal )
+   {
+      MASSERT( 0 != tchInitialFillUp );
+
+      *(this->pData + GetLength()) = 0;
    }
 
 
+#ifdef _WIN32
    MStringEx( const HWND hwWindow )
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
@@ -497,7 +509,7 @@ public:
          {
             ReAllocate( MUnit< tChar >( (MUI)dwPtr + 1 ) );
 
-            ::SendMessageTimeoutW( hwWindow, WM_GETTEXT, muSize.GetUnits(), (LPARAM)pData, SMTO_ABORTIFHUNG, 100, &dwPtr );
+            ::SendMessageTimeoutW( hwWindow, WM_GETTEXT, this->muSize.GetUnits(), (LPARAM)this->pData, SMTO_ABORTIFHUNG, 100, &dwPtr );
          }
 
          return;
@@ -508,7 +520,7 @@ public:
       {
          ReAllocate( MUnit< tChar >( (MUI)dwPtr + 1 ) );
 
-         ::SendMessageTimeoutA( hwWindow, WM_GETTEXT, muSize.GetUnits(), (LPARAM)pData, SMTO_ABORTIFHUNG, 100, &dwPtr );
+         ::SendMessageTimeoutA( hwWindow, WM_GETTEXT, this->muSize.GetUnits(), (LPARAM)this->pData, SMTO_ABORTIFHUNG, 100, &dwPtr );
       }
    }
 
@@ -517,10 +529,10 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
-      LPWSTR wstrMessage( NULL );
+      *this->pData = 0;
+      tChar* wstrMessage( NULL );
 
-      if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, dwDefaultLanguageId, (LPWSTR)&wstrMessage, 0, NULL ) )
+      if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, dwDefaultLanguageId, (tChar*)&wstrMessage, 0, NULL ) )
       {
          *this = MStringEx< wchar_t >( wstrMessage ).GetAs< tChar >();
 
@@ -533,7 +545,7 @@ public:
 
       if( ERROR_RESOURCE_LANG_NOT_FOUND == ::GetLastError() )
       {
-         if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, 0, (LPWSTR)&wstrMessage, 0, NULL ) )
+         if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, 0, (tChar*)&wstrMessage, 0, NULL ) )
          {
             *this = MStringEx< wchar_t >( wstrMessage ).GetAs< tChar >();
 
@@ -553,20 +565,21 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       *this = MStringEx< tChar >( MStringEx< tChar >::eGetSystemError, ::GetLastError() );
    }
 
 
+#ifdef _WIN32
    MStringEx( TypeInternetError, const DWORD dwLastError )
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
       LPWSTR wstrMessage( NULL );
 
-      if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, dwDefaultLanguageId, (LPWSTR)&wstrMessage, 0, NULL ) )
+      if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, dwDefaultLanguageId, (LPTSTR)&wstrMessage, 0, NULL ) )
       {
          *this = MStringEx< wchar_t >( wstrMessage ).GetAs< tChar >();
 
@@ -579,7 +592,7 @@ public:
 
       if( ERROR_RESOURCE_LANG_NOT_FOUND == ::GetLastError() )
       {
-         if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, 0, (LPWSTR)&wstrMessage, 0, NULL ) )
+         if( 0 != ::FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwLastError, 0, (LPTSTR)&wstrMessage, 0, NULL ) )
          {
             *this = MStringEx< wchar_t >( wstrMessage ).GetAs< tChar >();
 
@@ -616,13 +629,14 @@ public:
 
       *this = MStringEx< wchar_t >( L"Unknown." ).GetAs< tChar >();
    }
+#endif
 
 
    MStringEx( TypeInternetError )
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       *this = MStringEx< tChar >( MStringEx< tChar >::eGetInternetError, ::GetLastError() );
    }
@@ -632,7 +646,7 @@ public:
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       LPOLESTR lpGuid = NULL;
 
@@ -642,13 +656,14 @@ public:
 
       CoTaskMemFree( lpGuid );
    }
+#endif
 
 
    MStringEx( const __time64_t& tmTime )
       :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
          eNumericBase( Decimal )
    {
-      *pData = 0;
+      *this->pData = 0;
 
       tChar tchTime[26];
 
@@ -672,22 +687,22 @@ public:
    };
 
 
-   MStringEx( const FormattedUnsignedInteger eFormattedUnsignedInteger, const unsigned __int64 ui64Number, const tChar* strModifier = NULL, const tChar* strBase = NULL )
-      :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
-         eNumericBase( Decimal )
+   MStringEx( const FormattedUnsignedInteger eFormattedUnsignedInteger, const unsigned __int64 ui64Number, const NumericBase eNumericBase )
+      :  MemoryPH< tChar >( MUnit< tChar >( 1 ), 0 ),
+         eNumericBase( eNumericBase )
    {
-      *pData = 0;
+      tChar ch[65];
 
-
-      if( (NULL == strModifier) && (NULL == strBase) )
+      if( IsWchar() )
       {
-         *this = MStringEx< tChar >( MStringEx< tChar >::FF, TEXT("%I64u"), ui64Number );
+         _ui64tow_s( ui64Number, (wchar_t*)ch, 65, eNumericBase );
       }
       else
       {
-         *this = MStringEx< tChar >( MStringEx< tChar >::FF, MStringEx< tChar >( TEXT("%") ) + strModifier + MStringEx< tChar >( TEXT("I64") ) + (NULL == strBase ? TEXT("u") : strBase ), ui64Number );
+         _ui64toa_s( ui64Number, (char*)ch, 65, eNumericBase );
       }
 
+      *this = ch;
 
       if( NumberNoCommas == eFormattedUnsignedInteger )
       {
@@ -705,13 +720,22 @@ public:
    };
 
 
-   MStringEx( const FormattedSignedInteger eFormattedSignedInteger, const __int64 i64Number )
-      :  MemoryPH< tChar >( MUnit< tChar >( 1 ) ),
-         eNumericBase( Decimal )
+   MStringEx( const FormattedSignedInteger eFormattedSignedInteger, const __int64 i64Number, const NumericBase eNumericBase )
+      :  MemoryPH< tChar >( MUnit< tChar >( 1 ), 0 ),
+         eNumericBase( eNumericBase )
    {
-      *pData = 0;
+      tChar ch[65];
 
-      *this = MStringEx< tChar >( MStringEx< tChar >::FF, TEXT("%I64d"), i64Number );
+      if( IsWchar() )
+      {
+         _i64tow_s( i64Number, (wchar_t*)ch, 65, eNumericBase );
+      }
+      else
+      {
+         _i64toa_s( i64Number, (char*)ch, 65, eNumericBase );
+      }
+
+      *this = ch;
 
       if( SignedNumberNoCommas == eFormattedSignedInteger )
       {
@@ -740,7 +764,7 @@ public:
    
    ShellMemory< tChar > GetPureStringContent()
    {
-      return( ShellMemory< tChar >( pData, muSize - 1 ) );
+      return( ShellMemory< tChar >( this->pData, this->muSize - 1 ) );
    }
 
 
@@ -752,7 +776,7 @@ public:
       if( sizeof( tChar ) == sizeof( ExportCharType ) )
       {
          // The object is already this type.
-         return( MStringEx< ExportCharType >( (ExportCharType*)GetMemory() ) );
+         return( MStringEx< ExportCharType >( (ExportCharType*)this->GetMemory() ) );
       }
  
       #pragma warning( pop )
@@ -774,9 +798,10 @@ public:
       if( IsWchar() )
       {
          // The object is Unicode itself.
-         return( MStringEx< wchar_t >( (wchar_t*)pData ) );
+         return( MStringEx< wchar_t >( (wchar_t*)this->pData ) );
       }
 
+#ifdef _WIN32
       if( !IsValidCodePage( uiCodePage) )
       {
          uiCodePage = CP_ACP;
@@ -786,8 +811,8 @@ public:
       MUnit< wchar_t > muSizeRequired;
 
 
-      BYTE* ptrDataCopy( (BYTE*)pData );
-      const BYTE* ptrLastData( (BYTE*)((MUI)pData + muSize.InBytes()) );
+      BYTE* ptrDataCopy( (BYTE*)this->pData );
+      const BYTE* ptrLastData( (BYTE*)((MUI)this->pData + this->muSize.InBytes()) );
 
 
       for( DWORD dwChunkSize( MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) ); ptrDataCopy < ptrLastData; ptrDataCopy += dwChunkSize, dwChunkSize = MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) )
@@ -798,7 +823,7 @@ public:
 
       MStringEx< wchar_t > strString( muSizeRequired - 1 );
       muSizeRequired = 0;
-      ptrDataCopy = (BYTE*)pData;
+      ptrDataCopy = (BYTE*)this->pData;
 
 
       for( DWORD dwChunkSize( MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) ); ptrDataCopy < ptrLastData; ptrDataCopy += dwChunkSize, dwChunkSize = MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) )
@@ -810,6 +835,17 @@ public:
 
 
       return( strString );
+#else
+      MUnit< BYTE > muLength( (sizeof( wchar_t ) / sizeof( char )) * this->GetLength() );
+      
+      MStringEx< wchar_t > strString( muLength.template As< wchar_t >(), 0 );
+      
+      mbstowcs( strString.GetMemory(), (const char*)this->pData, strString.GetSize().GetUnits() );
+      
+      strString.GetMemory()[strString.GetSize().GetUnits() - 1] = 0;
+      
+      return( strString );
+#endif
    }
 
 
@@ -818,9 +854,10 @@ public:
       if( !IsWchar() )
       {
          // The object is multi-byte itself.
-         return( MStringEx< char >( (char*)pData ) );
+         return( MStringEx< char >( (char*)this->pData ) );
       }
 
+#ifdef _WIN32
       if( !IsValidCodePage( uiCodePage) )
       {
          uiCodePage = CP_ACP;
@@ -830,8 +867,8 @@ public:
       MUnit< char > muSizeRequired;
 
 
-      BYTE* ptrDataCopy( (BYTE*)pData );
-      const BYTE* ptrLastData( (BYTE*)((MUI)pData + muSize.InBytes()) );
+      BYTE* ptrDataCopy( (BYTE*)this->pData );
+      const BYTE* ptrLastData( (BYTE*)((MUI)this->pData + this->muSize.InBytes()) );
 
 
       for( DWORD dwChunkSize( MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) ); ptrDataCopy < ptrLastData; ptrDataCopy += dwChunkSize, dwChunkSize = MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) )
@@ -840,9 +877,9 @@ public:
       }
 
 
-      MStringEx< char > strString( muSizeRequired - 1 );
+      MStringEx< char > strString( muSizeRequired - 1, 0x20 );
       muSizeRequired = 0;
-      ptrDataCopy = (BYTE*)pData;
+      ptrDataCopy = (BYTE*)this->pData;
 
 
       for( DWORD dwChunkSize( MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) ); ptrDataCopy < ptrLastData; ptrDataCopy += dwChunkSize, dwChunkSize = MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 30 ) )
@@ -854,6 +891,15 @@ public:
 
 
       return( strString );
+#else
+      MStringEx< char > strString( MUnit< char >( this->GetLength() ), 0 );
+      
+      wcstombs( strString.GetMemory(), (const wchar_t*)this->pData, strString.GetSize().GetUnits() );
+      
+      strString.GetMemory()[strString.GetSize().GetUnits() - 1] = 0;
+      
+      return( strString );
+#endif
    }
 
 
@@ -861,10 +907,10 @@ public:
    {
       for( MUI muiIndex = 0; muiIndex < GetLength() / 2; muiIndex++ )
       {
-         const tChar tcBufferedChar( pData[muiIndex] );
+         const tChar tcBufferedChar( this->pData[muiIndex] );
 
-         pData[muiIndex] = pData[GetLength() - muiIndex - 1];
-         pData[GetLength() - muiIndex - 1] = tcBufferedChar;
+         this->pData[muiIndex] = this->pData[GetLength() - muiIndex - 1];
+         this->pData[GetLength() - muiIndex - 1] = tcBufferedChar;
       }
 
       return( *this );
@@ -875,7 +921,7 @@ public:
    {
       MASSERT( muiIndex < GetLength() );
 
-      pData[muiIndex] = tcNewChar;
+      this->pData[muiIndex] = tcNewChar;
 
       return( *this );
    }
@@ -885,9 +931,9 @@ public:
    {
       for( MUI muiIndex = 0; muiIndex < GetLength(); muiIndex++ )
       {
-         if( tcTargetChar == pData[muiIndex] )
+         if( tcTargetChar == this->pData[muiIndex] )
          {
-            pData[muiIndex] = tcNewChar;
+            this->pData[muiIndex] = tcNewChar;
          }
       }
 
@@ -906,10 +952,10 @@ public:
             return( *this );
          }
 
-         const tChar tcCopy= pData[muiIndexCharA];
+         const tChar tcCopy = this->pData[muiIndexCharA];
 
-         pData[muiIndexCharA] = pData[muiIndexCharB];
-         pData[muiIndexCharB] = tcCopy;
+         this->pData[muiIndexCharA] = this->pData[muiIndexCharB];
+         this->pData[muiIndexCharB] = tcCopy;
       }
 
       return( *this );
@@ -926,7 +972,7 @@ public:
       {
          for( MUI muiIndex = 0; muiIndex < GetLength(); muiIndex++ )
          {
-            listResult.AddTail( new MStringEx< tChar >( pData[muiIndex] ) );
+            listResult.AddTail( new MStringEx< tChar >( this->pData[muiIndex] ) );
 
             if( !bNoSplitMarkers )
             {
@@ -999,7 +1045,7 @@ public:
          return( *this = strThisNew.Replace( strOld, strNew, bCaseSensitive ) );
       }
 
-      ExchangeMemory< tChar >( strThisNew );
+      this->ExchangeMemory( strThisNew );
 
       return( *this );
    }
@@ -1014,16 +1060,16 @@ public:
 
       for( ; muiSource < muiChars; muiSource++ )
       {
-         if( tcRemove != pData[muiSource] )
+         if( tcRemove != this->pData[muiSource] )
          {
-            pData[muiDestination] = pData[muiSource];
+            this->pData[muiDestination] = this->pData[muiSource];
             muiDestination++;
          }
       }
 
       if( muiDestination != muiSource )
       {
-         pData[muiDestination] = 0;
+         this->pData[muiDestination] = 0;
 
          LimitSizeTo( MUnit< tChar >( muiDestination + 1 ) );
 
@@ -1051,7 +1097,7 @@ public:
          {
             for( MUI muiChars = 0; muiChars < muiChars2RemoveLength; muiChars++ )
             {
-               if( strChars2Remove[muiChars] == pData[muiThisIndex] )
+               if( strChars2Remove[muiChars] == this->pData[muiThisIndex] )
                {
                   bRemove = true;
 
@@ -1065,7 +1111,7 @@ public:
             continue;
          }
 
-         strNewString.pData[muiDstIndex++] = pData[muiThisIndex];
+         strNewString.pData[muiDstIndex++] = this->pData[muiThisIndex];
       }
 
       strNewString.pData[muiDstIndex] = 0;
@@ -1074,13 +1120,13 @@ public:
 
       MASSERT( strNewString.GetLength() == strNewString.FindLength() );
 
-      ExchangeMemory< tChar >( strNewString );
+      this->ExchangeMemory( strNewString );
 
       return( *this );
    }
 
 
-   MAtom< tChar >& Empty() throw( MAtomException )
+   MAtom< tChar >& Empty()
    {
       *this = MStringEx< tChar >();
 
@@ -1095,12 +1141,31 @@ public:
       if( NULL != pchSpecifier )
       {
          va_list arglist;
+
+#ifdef _WIN32
          va_start( arglist, pchSpecifier );
+         ReAllocate( MUnit< tChar >( (IsWchar() ? _vscwprintf( (const wchar_t*)pchSpecifier, arglist ) : _vscprintf( (const char*)pchSpecifier, arglist )) + 1 ) );\
+         va_end( arglist );
+#else
+         MUnit< tChar > muRequredSize;
+         va_start( arglist, pchSpecifier );
+         if( IsWchar() ) {
+            int lenTest = 1024;
+            wchar_t *p = new wchar_t[lenTest];
+            while( (MUI)-1 == (muRequredSize = MUnit< tChar >( vswprintf( p, lenTest, (const wchar_t*)pchSpecifier, arglist ) )) ) {
+               va_end( arglist );
+               va_start( arglist, pchSpecifier );
+               delete[] p;
+               lenTest += 1024;
+               p = new wchar_t[lenTest]; }
+            delete[] p; }
+         else { muRequredSize = MUnit< tChar >( _vscprintf( (const char*)pchSpecifier, arglist ) ); }
+         va_end( arglist );
+         this->ReAllocate( muRequredSize + 1 );
+#endif      
 
-         ReAllocate( MUnit< tChar >( (IsWchar() ? _vscwprintf( (const wchar_t*)pchSpecifier, arglist ) : _vscprintf( (const char*)pchSpecifier, arglist )) + 1 ) );
-
-         IsWchar() ? vswprintf_s( (wchar_t*)pData, muSize.GetUnits(), (const wchar_t*)pchSpecifier, arglist ) : vsprintf_s( (char*)pData, muSize.GetUnits(), (const char*)pchSpecifier, arglist );
-
+         va_start( arglist, pchSpecifier );
+         IsWchar() ? vswprintf_s( (wchar_t*)this->pData, this->muSize.GetUnits(), (const wchar_t*)pchSpecifier, arglist ) : vsprintf_s( (char*)this->pData, this->muSize.GetUnits(), (const char*)pchSpecifier, arglist );
          va_end( arglist );
       }
       else
@@ -1112,7 +1177,7 @@ public:
    }
 
 
-   bool Ascii2Bin( MMemoryPH< BYTE >& memTarget ) const
+   bool Ascii2Bin( MemoryPH< BYTE >& memTarget ) const
    {
       if( 0 != GetLength() % 2 )
       {
@@ -1214,26 +1279,26 @@ public:
 
    const ShellMemory< tChar > GetPureText() const
    {
-      return( ShellMemory< tChar >( pData, muSize - 1 ) );
+      return( ShellMemory< tChar >( this->pData, this->muSize - 1 ) );
    }
 
 
    // Returns number of tChars without the terminating zero tChar.
    MUI GetLength() const
    {
-      return( (muSize - 1).GetUnits() );
+      return( (this->muSize - 1).GetUnits() );
    }
 
 
    DWORD GetLength32() const
    {
-      return( (muSize - 1).GetUnits32() );
+      return( (this->muSize - 1).GetUnits32() );
    }
 
 
    MUnit< tChar > GetLengthUnits() const
    {
-      return( muSize - 1 );
+      return( this->muSize - 1 );
    }
 
 
@@ -1244,17 +1309,18 @@ public:
          return( false );
       }
 
-      return( tcChar == pData[GetLength()-1] );
+      return( tcChar == this->pData[GetLength()-1] );
    }
 
 
    // Returns false if the object is not empty and true if the object is empty.
    bool IsEmpty() const
    {
-      return( 1 == muSize );
+      return( 1 == this->muSize );
    }
 
 
+#ifdef _WIN32
    // Loads string from the application instance
    MStringEx< tChar >& LoadString( ResId ResId, HMODULE hmModule, WORD wLanguage )
    {
@@ -1270,7 +1336,7 @@ public:
          hmModule = GetModuleHandle( NULL );
       }
 
-	   HRSRC hResource = ::FindResourceW( hmModule, MAKEINTRESOURCEW( (((uiID>>4)+1) & static_cast<WORD>(~0)) ), (LPWSTR) RT_STRING);
+      HRSRC hResource = ::FindResourceW( hmModule, MAKEINTRESOURCEW( (((uiID>>4)+1) & static_cast<WORD>(~0)) ), (LPWSTR) RT_STRING);
 
       if( NULL == hResource )
       {
@@ -1281,40 +1347,40 @@ public:
       const MUnit< BYTE > muSize( ::SizeofResource( hmModule, hResource ) );
 
 
-	   HGLOBAL hGlobal = ::LoadResource( hmModule, hResource );
+      HGLOBAL hGlobal = ::LoadResource( hmModule, hResource );
 
-	   if( NULL == hGlobal )
-	   {
+      if( NULL == hGlobal )
+      {
          throw( MStringExException( MStringExException::CouldNotLoadResource ) );
-	   }
+      }
 
 
-	   const BYTE* pImageStart = (const BYTE*)::LockResource( hGlobal );
+      const BYTE* pImageStart = (const BYTE*)::LockResource( hGlobal );
 
-	   if( NULL == pImageStart )
-	   {
+      if( NULL == pImageStart )
+      {
          throw( MStringExException( MStringExException::CouldNotLoadResource ) );
-	   }
+      }
 
 
       const BYTE* pImageEnd = (BYTE*)pImageStart + muSize.InBytes();
 
 
       for( DWORD dwIndex = 0; dwIndex < (uiID & 0x000f); dwIndex++ )
-	   {
-		   pImageStart = pImageStart + sizeof( WORD ) * ( 1 + *(const WORD*)pImageStart );
+      {
+         pImageStart = pImageStart + sizeof( WORD ) * ( 1 + *(const WORD*)pImageStart );
 
          if( pImageStart >= pImageEnd )
-	      {
-		      throw( MStringExException( MStringExException::CouldNotLoadResource ) );
-	      }
+         {
+            throw( MStringExException( MStringExException::CouldNotLoadResource ) );
+         }
       }
 
 
-	   if( 0 == *(const WORD*)pImageStart )
-	   {
-		   throw( MStringExException( MStringExException::CouldNotLoadResource ) );
-	   }
+      if( 0 == *(const WORD*)pImageStart )
+      {
+         throw( MStringExException( MStringExException::CouldNotLoadResource ) );
+      }
 
 
       MUnit< TCHAR >       muStringSize( (*(WORD*)pImageStart) );
@@ -1326,6 +1392,7 @@ public:
 
       return( *this );
    }
+#endif
 
 
    bool FindInFile( const MHandle& hFile, const unsigned __int64 uiSearchFrom, unsigned __int64* puiFoundAt, const HANDLE heStop, const bool bCaseSensitive ) const
@@ -1356,7 +1423,7 @@ public:
       MASSERT( uiSearchFrom == (unsigned __int64)uiPosition.QuadPart );
 
 
-      MemoryPH< tChar > memData( MMIN< MUnit< tChar >, MUI, MUI >( 2 << 20, liFileSize.QuadPart - uiSearchFrom ) );
+      MemoryPH< tChar > memData( MUnit< tChar >( MMIN< MUI, ULONGLONG, ULONGLONG >( 2 << 20, liFileSize.QuadPart - uiSearchFrom ) ) );
       memData.LoadFromFile( hFile );
 
       ShellMemory< tChar > memSearcher( memData );
@@ -1435,7 +1502,7 @@ public:
       MASSERT( 0           <= muiStartingPosition );
       MASSERT( GetLength() >= muiStartingPosition );
 
-      const tChar* pThis( pData );
+      const tChar* pThis( this->pData );
       const tChar  tchSearchFor[2] = { chCHAR, 0 };
 
       MStringEx< tChar > strThis;
@@ -1448,7 +1515,7 @@ public:
 
          if( IsWchar() )
          {
-			   _wcslwr_s( (wchar_t*)tchSearchFor, sizeof( tchSearchFor ) / sizeof( tChar ) );
+            _wcslwr_s( (wchar_t*)tchSearchFor, sizeof( tchSearchFor ) / sizeof( tChar ) );
          }
          else
          {
@@ -1456,9 +1523,9 @@ public:
          }
       }
 
-      for( MUI muiIndex = muiStartingPosition; 0 != pData[muiIndex]; muiIndex++ )
+      for( MUI muiIndex = muiStartingPosition; 0 != this->pData[muiIndex]; muiIndex++ )
       {
-         if( tchSearchFor[0] == pData[muiIndex] )
+         if( tchSearchFor[0] == this->pData[muiIndex] )
          {
             return( muiIndex );
          }
@@ -1474,7 +1541,7 @@ public:
       {
          if( strSearchFor.GetLength() <= (GetLength() - muiStartingPos) )
          {
-            const tChar* pThis( pData );
+            const tChar* pThis( this->pData );
             const tChar* pSearchFor( strSearchFor.pData );
 
             MStringEx< tChar > strThis;
@@ -1519,7 +1586,7 @@ public:
       if( strSearchFor.GetLength() <= GetLength() )
       {
          const MUI  muiStartPosition( MMIN< MUI, MUI, MUI >( GetLength() - strSearchFor.GetLength(), muiStartingPos ) );
-         const tChar* pThis( pData );
+         const tChar* pThis( this->pData );
          const tChar* pSearchFor( strSearchFor.pData );
 
          MStringEx< tChar > strThis;
@@ -1568,7 +1635,7 @@ public:
       {
          for( MUI muiIndex = 0; muiIndex < strSearchFor.GetLength(); muiIndex++ )
          {
-            if( pData[muiIndex] != strSearchFor.pData[muiIndex] )
+            if( this->pData[muiIndex] != strSearchFor.pData[muiIndex] )
             {
                return( false );
             }
@@ -1595,7 +1662,50 @@ public:
    }
 
 
-   // Returns the occurence count of the specified character, from characted with index muiStart for muiChars chars.
+   bool IsEndingWith( const MStringEx< tChar >& strSearchFor, const bool bCaseSensitive ) const throw()
+   {
+      if( GetLength() < strSearchFor.GetLength() )
+      {
+         return( false );
+      }
+
+      if( strSearchFor.IsEmpty() )
+      {
+         return( false );
+      }
+
+      if( bCaseSensitive )
+      {
+         for( MUI muiIndex = 0; muiIndex < strSearchFor.GetLength(); muiIndex++ )
+         {
+            if( this->pData[GetLength() - strSearchFor.GetLength() + muiIndex] != strSearchFor.pData[muiIndex] )
+            {
+               return( false );
+            }
+         }
+      }
+      else
+      {
+         MStringEx< tChar > strS1( *this );
+         MStringEx< tChar > strS2( strSearchFor );
+
+         strS1.ToUpper();
+         strS2.ToUpper();
+
+         for( MUI muiIndex = 0; muiIndex < strS2.GetLength(); muiIndex++ )
+         {
+            if( strS1.pData[GetLength() - strSearchFor.GetLength() + muiIndex] != strS2.pData[muiIndex] )
+            {
+               return( false );
+            }
+         }
+      }
+
+      return( true );
+   }
+
+
+   // Returns the occurrence count of the specified character, from character with index muiStart for muiChars chars.
    MUI GetCharCount( const tChar tcChar, const MUI muiStart, const MUI muiChars )
    {
       MUI muiCharCount( 0 );
@@ -1604,7 +1714,7 @@ public:
 
       for( MUI muiIndex = muiStart, muiCount = 0; muiIndex < muiLength && muiCount < muiChars; muiIndex++, muiCount++ )
       {
-         if( tcChar == pData[muiIndex] )
+         if( tcChar == this->pData[muiIndex] )
          {
             muiCharCount++;
          }
@@ -1763,19 +1873,19 @@ public:
 
    MStringEx< tChar >& EscapeRegEx() throw()
    {
-      MemoryPH< tChar > strNew( MUnit< tChar >( 2 * GetLength() + 1 ), 0 );
+      MemoryPH< tChar > strNew( MUnit< tChar >( 2 * GetLength() + 1 ) );
 
       for( MUI muiIndexThis = 0, muiIndexNew = 0; muiIndexThis < GetLength(); muiIndexThis++, muiIndexNew++ )
       {
-         if( IsWhiteSpaceChar( pData[muiIndexThis] ) )
+         if( IsWhiteSpaceChar( this->pData[muiIndexThis] ) )
          {
             strNew[muiIndexNew] = TCHAR('\\');
-            strNew[++muiIndexNew] = pData[muiIndexThis];
+            strNew[++muiIndexNew] = this->pData[muiIndexThis];
 
             continue;
          }
 
-         switch( pData[muiIndexThis] )
+         switch( this->pData[muiIndexThis] )
          {
          case TCHAR('\\'):
          case TCHAR('*'):
@@ -1791,11 +1901,11 @@ public:
          case TCHAR('.'):
          case TCHAR('#'):
             strNew[muiIndexNew] = TCHAR('\\');
-            strNew[++muiIndexNew] = pData[muiIndexThis];
+            strNew[++muiIndexNew] = this->pData[muiIndexThis];
             break;
 
          default:
-            strNew[muiIndexNew] = pData[muiIndexThis];
+            strNew[muiIndexNew] = this->pData[muiIndexThis];
             break;
          }
       }
@@ -1813,7 +1923,7 @@ public:
 
       for( MUI muiIndex = 0; muiIndex < muiLength; muiIndex++ )
       {
-         if( tcChar != pData[muiIndex] )
+         if( tcChar != this->pData[muiIndex] )
          {
             muiStart = muiIndex;
 
@@ -1837,7 +1947,7 @@ public:
 
       for( MUI muiIndex = 0; (muiLength == muiStart) && (muiIndex < muiLength); muiIndex++ )
       {
-         if( IsWhiteSpaceChar( pData[muiIndex] ) )
+         if( IsWhiteSpaceChar( this->pData[muiIndex] ) )
          {
             continue;
          }
@@ -1861,7 +1971,7 @@ public:
 
       for( MUI muiIndex = 0; muiIndex < muiLength; muiIndex++ )
       {
-         if( tcChar != pData[muiLength - muiIndex - 1] )
+         if( tcChar != this->pData[muiLength - muiIndex - 1] )
          {
             muiStart = muiIndex;
 
@@ -1885,7 +1995,7 @@ public:
 
       for( MUI muiIndex = 0; (muiLength == muiStart) && (muiIndex < muiLength); muiIndex++ )
       {
-         if( IsWhiteSpaceChar( pData[muiLength - muiIndex - 1] ) )
+         if( IsWhiteSpaceChar( this->pData[muiLength - muiIndex - 1] ) )
          {
             continue;
          }
@@ -1932,11 +2042,11 @@ public:
    {
       if( IsWchar() )
       {
-			_wcslwr_s( (wchar_t*)pData, muSize.GetUnits() );
+         _wcslwr_s( (wchar_t*)this->pData, this->muSize.GetUnits() );
       }
       else
       {
-         _strlwr_s( (char*)pData, muSize.GetUnits() );
+         _strlwr_s( (char*)this->pData, this->muSize.GetUnits() );
       }
 
       return( *this );
@@ -1947,11 +2057,11 @@ public:
    {
       if( IsWchar() )
       {
-         _wcsupr_s( (wchar_t*)pData, muSize.GetUnits() );
+         _wcsupr_s( (wchar_t*)this->pData, this->muSize.GetUnits() );
       }
       else
       {
-         _strupr_s( (char*)pData, muSize.GetUnits() );
+         _strupr_s( (char*)this->pData, this->muSize.GetUnits() );
       }
 
       return( *this );
@@ -1964,17 +2074,11 @@ public:
       {
          if( IsWchar() )
          {
-            if( iswascii( (wchar_t)pData[muiIndex] ) && iswlower( (wchar_t)pData[muiIndex] ) )
-            {
-               *(wchar_t*)&pData[muiIndex] = towupper( pData[muiIndex] );
-            }
+            *(wchar_t*)&this->pData[muiIndex] = towupper( this->pData[muiIndex] );
          }
          else
          {
-            if( __isascii( (char)pData[muiIndex] ) && islower( (char)pData[muiIndex] ) )
-            {
-               *(char*)&pData[muiIndex] = (char)toupper( pData[muiIndex] );
-            }
+            *(char*)&this->pData[muiIndex] = (char)toupper( this->pData[muiIndex] );
          }
       }
 
@@ -1984,13 +2088,13 @@ public:
 
    operator const tChar*() const
    {
-      return( pData );
+      return( this->pData );
    }
 
 
    operator tChar*()
    {
-      return( pData );
+      return( this->pData );
    }
 
 
@@ -2005,10 +2109,10 @@ public:
    {
       if( IsWchar() )
       {
-         return( wcstol( (wchar_t*)pData, NULL, eNumericBase ) );
+         return( wcstol( (wchar_t*)this->pData, NULL, eNumericBase ) );
       }
 
-      return( strtol( (char*)pData, NULL, eNumericBase ) );
+      return( strtol( (char*)this->pData, NULL, eNumericBase ) );
    }
 
 
@@ -2016,10 +2120,10 @@ public:
    {
       if( IsWchar() )
       {
-         return( wcstoul( (wchar_t*)pData, NULL, eNumericBase ) );
+         return( wcstoul( (wchar_t*)this->pData, NULL, eNumericBase ) );
       }
 
-      return( strtoul( (char*)pData, NULL, eNumericBase ) );
+      return( strtoul( (char*)this->pData, NULL, eNumericBase ) );
    }
 
 
@@ -2027,10 +2131,10 @@ public:
    {
       if( IsWchar() )
       {
-         return( _wtoi64( (wchar_t*)pData ) );
+         return( _wcstoi64( (wchar_t*)this->pData, NULL, eNumericBase ) );
       }
 
-      return( _atoi64( (char*)pData ) );
+      return( _strtoi64( (char*)this->pData, NULL, eNumericBase ) );
    }
 
 
@@ -2038,10 +2142,10 @@ public:
    {
       if( IsWchar() )
       {
-         return( (unsigned __int64)_wtoi64( (wchar_t*)pData ) );
+         return( _wcstoui64( (wchar_t*)this->pData, NULL, eNumericBase ) );
       }
 
-      return( (unsigned __int64)_atoi64( (char*)pData ) );
+      return( _strtoui64( (char*)this->pData, NULL, eNumericBase ) );
    }
 
 
@@ -2049,14 +2153,14 @@ public:
    {
       if( IsWchar() )
       {
-         return( _wtof( (wchar_t*)pData ) );
+         return( wcstod( (wchar_t*)this->pData, NULL ) );
       }
 
-      return( atof( (char*)pData ) );
+      return( strtod( (char*)this->pData, NULL ) );
    }
 
 
-   const MStringEx< tChar >& PrepareNumericConversion( typename NumericBase eNewNumberBase ) const throw()
+   const MStringEx< tChar >& PrepareNumericConversion( NumericBase eNewNumberBase ) const throw()
    {
       eNumericBase = eNewNumberBase;
 
@@ -2073,7 +2177,7 @@ public:
       MUI muiRealStringLength = 0;
       const MUI muiAssumedSize( GetLength() );
 
-      for( ; 0 != pData[muiRealStringLength]; muiRealStringLength++ )
+      for( ; 0 != this->pData[muiRealStringLength]; muiRealStringLength++ )
       {
          if( muiAssumedSize < muiRealStringLength )
          {
@@ -2111,9 +2215,9 @@ public:
    {
       MStringEx< tChar > strString( MUnit< tChar >( this->FindLength() ) );
 
-      strString.Transfer( SubMemory( MUnit< tChar >( 0 ), strString.GetSize() ) );
+      strString.Transfer( this->SubMemory( MUnit< tChar >( 0 ), strString.GetSize() ) );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -2121,12 +2225,12 @@ public:
 
    MStringEx< tChar >& operator=( const MStringEx< tChar >& objMStringEx )
    {
-      if( objMStringEx.muSize != muSize )
+      if( objMStringEx.muSize != this->muSize )
       {
-         ReAllocate( objMStringEx.muSize );
+         this->ReAllocate( objMStringEx.muSize );
       }
 
-      Transfer( objMStringEx );
+      this->Transfer( objMStringEx );
 
       eNumericBase = objMStringEx.eNumericBase;
 
@@ -2138,35 +2242,42 @@ public:
    {
       MStringEx< tChar > strString( ptrNewString );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
 
 
+#ifdef _WIN32
    MStringEx< tChar > &operator=( const MBStr& bstrText )
    {
       MStringEx< tChar > strString( MStringEx< tChar >::FromBSTR, bstrText.operator const BSTR &() );
 
-      ExchangeMemory< tChar >( strString );
+      ExchangeMemory( strString );
 
       return( *this );
    }
+#endif
 
 
    // Case sensitive compare.
-   bool operator==( typename const MStringEx< tChar >& strToCompare ) const
+   bool operator==( const MStringEx< tChar >& strToCompare ) const
    {
-      if( !dynamic_cast< const MemoryPH< tChar >* >( this )->operator==( strToCompare ) )
+      if( this->muSize != strToCompare.GetSize() )
       {
          return( false );
       }
+
+      if( 0 != memcmp( this->pData, strToCompare.GetMemory(), this->muSize.InBytes() ) )
+	  {
+         return( false );
+	  }
 
       return( eNumericBase == strToCompare.eNumericBase );
    }
 
 
-   bool CompareNoCase( typename const MStringEx< tChar >& strRight ) const throw()
+   bool CompareNoCase( const MStringEx< tChar >& strRight ) const throw()
    {
       if( GetLength() != strRight.GetLength() )
       {
@@ -2195,14 +2306,14 @@ public:
 
 
    // Case sensitive compare.
-   bool operator!=( typename const MStringEx< tChar > &strToCompare ) const
+   bool operator!=( const MStringEx< tChar > &strToCompare ) const
    {
       return( !(*this == strToCompare) );
    }
 
 
    // Case sensitive compare.
-   friend bool operator==( typename const MStringEx< tChar >& strLeft, const tChar* strRight ) throw()
+   friend bool operator==( const MStringEx< tChar >& strLeft, const tChar* strRight ) throw()
    {
       if( strLeft.GetLength() != FindCharSequenceAsStringLength( strRight ) )
       {
@@ -2214,14 +2325,19 @@ public:
 
 
    // Case sensitive compare.
-   friend bool operator!=( typename const MStringEx< tChar >& strLeft, const tChar* strRight ) throw()
+   friend bool operator!=( const MStringEx< tChar >& strLeft, const tChar* strRight ) throw()
    {
-      return( !::operator==( strLeft, strRight ) );
+      if( strLeft.GetLength() != FindCharSequenceAsStringLength( strRight ) )
+      {
+         return( true );
+      }
+
+      return( 0 != memcmp( strLeft.pData, strRight, strLeft.GetSize().InBytes() ) );
    }
 
 
    // Case sensitive compare.
-   friend bool operator==( const tChar* strLeft, typename const MStringEx< tChar >& strRight ) throw()
+   friend bool operator==( const tChar* strLeft, const MStringEx< tChar >& strRight ) throw()
    {
       if( FindCharSequenceAsStringLength( strLeft ) != strRight.GetLength() )
       {
@@ -2233,14 +2349,19 @@ public:
 
 
    // Case sensitive compare.
-   friend bool operator!=( const tChar* strLeft, typename const MStringEx< tChar >& strRight ) throw()
+   friend bool operator!=( const tChar* strLeft, const MStringEx< tChar >& strRight ) throw()
    {
-      return( !::operator==( strLeft, strRight ) );
+      if( FindCharSequenceAsStringLength( strLeft ) != strRight.GetLength() )
+      {
+         return( true );
+      }
+
+      return( 0 != memcmp( strLeft, strRight.pData, strRight.GetSize().InBytes() ) );
    }
 
 
    // Case sensitive compare.
-   friend bool operator==( typename const MStringEx< tChar >& strString, const ResId& ResId )
+   friend bool operator==( const MStringEx< tChar >& strString, const ResId& ResId )
    {
       const MStringEx< tChar > strRightCompare( ResId );
 
@@ -2249,85 +2370,89 @@ public:
 
 
    // Case sensitive compare.
-   friend bool operator==( const ResId& ResId, const MStringEx< tChar >& strString )
+   friend bool operator==( const ResId& ridString, const MStringEx< tChar >& strString )
    {
-      const MStringEx< tChar > strRightCompare( ResId );
+      const MStringEx< tChar > strRIDCompare( ridString );
 
-      return( strString == strRightCompare );
+      return( strString == strRIDCompare );
    }
 
 
    // Case sensitive compare.
-   friend bool operator!=( typename const MStringEx< tChar >& strString, const ResId& ResId )
+   friend bool operator!=( const MStringEx< tChar >& strString, const ResId& ridString )
    {
-      return( !::operator==( strString, ResId ) );
+      const MStringEx< tChar > strRIDCompare( ridString );
+
+      return( strString != strRIDCompare );
    }
 
 
    // Case sensitive compare.
-   friend bool operator!=( const ResId& ResId, typename const MStringEx< tChar >& strString )
+   friend bool operator!=( const ResId& ridString, const MStringEx< tChar >& strString )
    {
-      return( !::operator==( strString, ResId ) );
+      const MStringEx< tChar > strRIDCompare( ridString );
+
+      return( strString != strRIDCompare );
    }
 
 
    // Compare two strings lexicographically e.g. "a" > "A".
-   bool operator<( typename const MStringEx< tChar > &strToCompare ) const
+   bool operator<( const MStringEx< tChar > &strToCompare ) const
    {
       if( IsWchar() )
       {
-         return( wcscmp( (wchar_t*)pData, (wchar_t*)strToCompare.pData ) < 0 );
+         return( wcscmp( (wchar_t*)this->pData, (wchar_t*)strToCompare.pData ) < 0 );
       }
       else
       {
-         return( strcmp( (char*)pData, (char*)strToCompare.pData ) < 0 );
-      }
-   }
-
-
-   // Compare two strings lexicographically e.g. "a" > "A".
-   bool operator<=( typename const MStringEx< tChar > &strToCompare ) const
-   {
-      if( IsWchar() )
-      {
-         return( wcscmp( (wchar_t*)pData, (wchar_t*)strToCompare.pData ) <= 0 );
-      }
-      else
-      {
-         return( strcmp( (char*)pData, (char*)strToCompare.pData ) <= 0 );
+         return( strcmp( (char*)this->pData, (char*)strToCompare.pData ) < 0 );
       }
    }
 
 
    // Compare two strings lexicographically e.g. "a" > "A".
-   bool operator>( typename const MStringEx< tChar > &strToCompare ) const
+   bool operator<=( const MStringEx< tChar > &strToCompare ) const
    {
       if( IsWchar() )
       {
-         return( wcscmp( (wchar_t*)pData, (wchar_t*)strToCompare.pData ) > 0 );
+         return( wcscmp( (wchar_t*)this->pData, (wchar_t*)strToCompare.pData ) <= 0 );
       }
       else
       {
-         return( strcmp( (char*)pData, (char*)strToCompare.pData ) > 0 );
+         return( strcmp( (char*)this->pData, (char*)strToCompare.pData ) <= 0 );
       }
    }
 
 
    // Compare two strings lexicographically e.g. "a" > "A".
-   bool operator>=( typename const MStringEx< tChar > &strToCompare ) const
+   bool operator>( const MStringEx< tChar > &strToCompare ) const
    {
       if( IsWchar() )
       {
-         return( wcscmp( (wchar_t*)pData, (wchar_t*)strToCompare.pData ) >= 0 );
+         return( wcscmp( (wchar_t*)this->pData, (wchar_t*)strToCompare.pData ) > 0 );
       }
       else
       {
-         return( strcmp( (char*)pData, (char*)strToCompare.pData ) >= 0 );
+         return( strcmp( (char*)this->pData, (char*)strToCompare.pData ) > 0 );
       }
    }
 
 
-   MStringEx< tChar >& operator+=( typename const MStringEx< tChar > &strAdd2This )
+   // Compare two strings lexicographically e.g. "a" > "A".
+   bool operator>=( const MStringEx< tChar > &strToCompare ) const
+   {
+      if( IsWchar() )
+      {
+         return( wcscmp( (wchar_t*)this->pData, (wchar_t*)strToCompare.pData ) >= 0 );
+      }
+      else
+      {
+         return( strcmp( (char*)this->pData, (char*)strToCompare.pData ) >= 0 );
+      }
+   }
+
+
+   MStringEx< tChar >& operator+=( const MStringEx< tChar > &strAdd2This )
    {
       MASSERT( FindLength() == GetLength() );
       MASSERT( strAdd2This.FindLength() == strAdd2This.GetLength() );
@@ -2335,9 +2460,9 @@ public:
       MStringEx< tChar > strString( MUnit< tChar >( GetLength() + strAdd2This.GetLength() ) );
 
       strString.Transfer( *this );
-      strString.Transfer( muSize - 1, strAdd2This );
+      strString.Transfer( this->muSize - 1, strAdd2This );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -2359,7 +2484,7 @@ public:
       strString.Transfer( *this );
       strString[GetLength()] = tchChar;
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -2385,11 +2510,11 @@ public:
       const MUI muiInsertPosition( MMIN< MUI, MUI, MUI >( GetLength(), Find_L2R( tchTarget, muiSearchStart, bCaseSensitive ) ) );
       
       MUnit< tChar > muOffset;
-      strString.Transfer( muOffset, true, ShellMemory< tChar >( pData, MUnit< tChar >( muiInsertPosition ) ) );
+      strString.Transfer( muOffset, true, ShellMemory< tChar >( this->pData, MUnit< tChar >( muiInsertPosition ) ) );
       strString.Transfer( muOffset, true, ShellMemory< tChar >( (tChar*)strInsertion, MUnit< tChar >( muiInsertionLength ) ) );
-      strString.Transfer( muOffset, true, ShellMemory< tChar >( pData + muiInsertPosition, MUnit< tChar >( GetLength() - muiInsertPosition ) ) );
+      strString.Transfer( muOffset, true, ShellMemory< tChar >( this->pData + muiInsertPosition, MUnit< tChar >( GetLength() - muiInsertPosition ) ) );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -2413,12 +2538,12 @@ public:
       const MUI muiInsertPosition( MMIN< MUI, MUI, MUI >( GetLength(), muiPosition ) );
       
       MUnit< tChar > muOffset;
-      strString.Transfer( muOffset, true, ShellMemory< tChar >( pData, MUnit< tChar >( muiInsertPosition ) ) );
+      strString.Transfer( muOffset, true, ShellMemory< tChar >( this->pData, MUnit< tChar >( muiInsertPosition ) ) );
       strString.Transfer( muOffset, true, strInsertion );
       muOffset--;
-      strString.Transfer( muOffset, true, ShellMemory< tChar >( pData + muiInsertPosition, MUnit< tChar >( GetLength() - muiInsertPosition ) ) );
+      strString.Transfer( muOffset, true, ShellMemory< tChar >( this->pData + muiInsertPosition, MUnit< tChar >( GetLength() - muiInsertPosition ) ) );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -2442,7 +2567,7 @@ public:
       const MUI muiInsertPosition( MMIN< MUI, MUI, MUI >( GetLength(), muiPosition ) );
       
       MUnit< tChar > muOffset;
-      strString.Transfer( muOffset, true, ShellMemory< tChar >( pData, MUnit< tChar >( muiInsertPosition ) ) );
+      strString.Transfer( muOffset, true, ShellMemory< tChar >( this->pData, MUnit< tChar >( muiInsertPosition ) ) );
 
       for( MUI muiCount = 0; muiCount < muiTimes; muiCount++ )
       {
@@ -2450,9 +2575,9 @@ public:
          muOffset--;
       }
 
-      strString.Transfer( muOffset, true, ShellMemory< tChar >( pData + muiInsertPosition, MUnit< tChar >( GetLength() - muiInsertPosition ) ) );
+      strString.Transfer( muOffset, true, ShellMemory< tChar >( this->pData + muiInsertPosition, MUnit< tChar >( GetLength() - muiInsertPosition ) ) );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -2491,16 +2616,16 @@ public:
       {
          const MUnit< tChar > muInsertPosition( 0 == muiCount ? (bLeftToRight ? muiDistanceChars : (1 + ((GetLength() - 1) % muiDistanceChars))) : muiDistanceChars );
 
-         strString.Transfer( muOffsetDst, true, SubMemory< tChar >( muOffsetSrc, muInsertPosition ) );
+         strString.Transfer( muOffsetDst, true, this->SubMemory( muOffsetSrc, muInsertPosition ) );
          muOffsetSrc += muInsertPosition;
 
          strString.Transfer( muOffsetDst, true, strSeparator );
          muOffsetDst--;
       }
 
-      strString.Transfer( muOffsetDst, true, SubMemory< tChar >( muOffsetSrc, MUnit< tChar >( GetLength() - muOffsetSrc.GetUnits() ) ) );
+      strString.Transfer( muOffsetDst, true, this->SubMemory( muOffsetSrc, MUnit< tChar >( GetLength() - muOffsetSrc.GetUnits() ) ) );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -2510,9 +2635,9 @@ public:
    {
       MUI muiCount( 0 );
 
-      for( MUI muiIndex = 0; NULL != pData[muiIndex]; muiIndex++ )
+      for( MUI muiIndex = 0; NULL != this->pData[muiIndex]; muiIndex++ )
       {
-         if( tchChar == pData[muiIndex] )
+         if( tchChar == this->pData[muiIndex] )
          {
             muiCount++;
          }
@@ -2528,7 +2653,7 @@ public:
 
       MStringEx< tChar > strLeft( MUnit< tChar >( MMIN< MUI, MUI, MUI >( muiChars, GetLength() ) ) );
 
-      strLeft.Transfer( SubMemory< tChar >( MUnit< tChar >( 0 ), strLeft.muSize - 1 ) );
+      strLeft.Transfer( this->SubMemory( MUnit< tChar >( 0 ), strLeft.muSize - 1 ) );
 
       MASSERT( strLeft.GetLength() == strLeft.FindLength() );
 
@@ -2547,7 +2672,7 @@ public:
 
       MStringEx< tChar > strLeft( MUnit< tChar >( MMIN< MUI, MUI, MUI >( GetLength() - muiCharsOnRightToOmmit, GetLength() ) ) );
 
-      strLeft.Transfer( SubMemory< tChar >( MUnit< tChar >( 0 ), strLeft.muSize - 1 ) );
+      strLeft.Transfer( this->SubMemory( MUnit< tChar >( 0 ), strLeft.muSize - 1 ) );
 
       MASSERT( strLeft.GetLength() == strLeft.FindLength() );
 
@@ -2564,9 +2689,9 @@ public:
       MUI muiCount( 0 );
       MUI muiIndex( 0 );
 
-      for( ; NULL != pData[muiIndex]; muiIndex++ )
+      for( ; NULL != this->pData[muiIndex]; muiIndex++ )
       {
-         if( tchChar == pData[muiIndex] )
+         if( tchChar == this->pData[muiIndex] )
          {
             muiCount++;
 
@@ -2577,7 +2702,7 @@ public:
          }
       }
 
-      if( (NULL == pData[muiIndex]) && !bImpliedL2RPreFix )
+      if( (NULL == this->pData[muiIndex]) && !bImpliedL2RPreFix )
       {
          return( Left( 0 ) );
       }
@@ -2597,9 +2722,9 @@ public:
 
       const MUI muiNthCharApearence( CharAppearenceCount( tchChar ) - muiR2LNthCharApearence + 1 );
 
-      for( ; NULL != pData[muiIndex]; muiIndex++ )
+      for( ; NULL != this->pData[muiIndex]; muiIndex++ )
       {
-         if( tchChar == pData[muiIndex] )
+         if( tchChar == this->pData[muiIndex] )
          {
             muiCount++;
 
@@ -2610,7 +2735,7 @@ public:
          }
       }
 
-      if( (NULL == pData[muiIndex]) && !bImpliedR2LPreFix )
+      if( (NULL == this->pData[muiIndex]) && !bImpliedR2LPreFix )
       {
          return( Left( 0 ) );
       }
@@ -2628,9 +2753,9 @@ public:
       MUI muiCount( 0 );
       MUI muiIndex( 0 );
 
-      for( ; NULL != pData[muiIndex]; muiIndex++ )
+      for( ; NULL != this->pData[muiIndex]; muiIndex++ )
       {
-         if( tchChar == pData[muiIndex] )
+         if( tchChar == this->pData[muiIndex] )
          {
             muiCount++;
 
@@ -2641,7 +2766,7 @@ public:
          }
       }
 
-      if( (NULL == pData[muiIndex]) && !bImpliedL2RPreFix )
+      if( (NULL == this->pData[muiIndex]) && !bImpliedL2RPreFix )
       {
          return( Right( 0 ) );
       }
@@ -2661,9 +2786,9 @@ public:
 
       const MUI muiNthCharApearence( CharAppearenceCount( tchChar ) - muiR2LNthCharApearence + 1 );
 
-      for( ; NULL != pData[muiIndex]; muiIndex++ )
+      for( ; NULL != this->pData[muiIndex]; muiIndex++ )
       {
-         if( tchChar == pData[muiIndex] )
+         if( tchChar == this->pData[muiIndex] )
          {
             muiCount++;
 
@@ -2674,7 +2799,7 @@ public:
          }
       }
 
-      if( (NULL == pData[muiIndex]) && !bImpliedR2LPreFix )
+      if( (NULL == this->pData[muiIndex]) && !bImpliedR2LPreFix )
       {
          return( Right( 0 ) );
       }
@@ -2689,7 +2814,7 @@ public:
 
       MStringEx< tChar > strRight( MUnit< tChar >( MMIN< MUI, MUI, MUI >( muiChars, GetLength() ) ) );
 
-      strRight.Transfer( SubMemory< tChar >( muSize - strRight.muSize, strRight.muSize - 1 ) );
+      strRight.Transfer( this->SubMemory( this->muSize - strRight.muSize, strRight.muSize - 1 ) );
 
       MASSERT( strRight.GetLength() == strRight.FindLength() );
 
@@ -2708,7 +2833,7 @@ public:
 
       MStringEx< tChar > strRight( MUnit< tChar >( MMIN< MUI, MUI, MUI >( GetLength() - muiCharsOnLeftToOmmit, GetLength() ) ) );
 
-      strRight.Transfer( SubMemory< tChar >( MUnit< tChar >( muiCharsOnLeftToOmmit ), strRight.muSize - 1 ) );
+      strRight.Transfer( this->SubMemory( MUnit< tChar >( muiCharsOnLeftToOmmit ), strRight.muSize - 1 ) );
 
       MASSERT( strRight.GetLength() == strRight.FindLength() );
 
@@ -2727,7 +2852,7 @@ public:
 
       MStringEx< tChar > strMid( MUnit< tChar >( MMIN< MUI, MUI, MUI >( muiChars, GetLength() - muiStart ) ) );
 
-      strMid.Transfer( SubMemory< tChar >( MUnit< tChar >( muiStart ), strMid.muSize - 1 ) );
+      strMid.Transfer( this->SubMemory( MUnit< tChar >( muiStart ), strMid.muSize - 1 ) );
 
       MASSERT( strMid.GetLength() == strMid.FindLength() );
 
@@ -2848,16 +2973,16 @@ public:
    {
       MASSERT( FindLength() == GetLength() );
 
-      if( 0 == pData[0] )
+      if( 0 == this->pData[0] )
       {
          return( false );
       }
 
       try
       {
-         for( MUI muiIndex = 0; ((0 != pData[muiIndex]) && (muiIndex < GetLength())); muiIndex++ )
+         for( MUI muiIndex = 0; ((0 != this->pData[muiIndex]) && (muiIndex < GetLength())); muiIndex++ )
          {
-            GetCharNumericValue( pData[muiIndex] );
+            GetCharNumericValue( this->pData[muiIndex] );
          }
       }
       catch( ... )
@@ -2873,21 +2998,21 @@ public:
    {
       MASSERT( FindLength() == GetLength() );
 
-      if( 0 == pData[0] )
+      if( 0 == this->pData[0] )
       {
          return( false );
       }
 
-      if( (1 == GetLength()) && (tChar('+') == pData[0]) )
+      if( (1 == GetLength()) && (tChar('+') == this->pData[0]) )
       {
          return( false );
       }
 
       try
       {
-         for( MUI muiIndex = (tChar('+') == pData[0]) ? 1 : 0; ((0 != pData[muiIndex]) && (muiIndex < GetLength())); muiIndex++ )
+         for( MUI muiIndex = (tChar('+') == this->pData[0]) ? 1 : 0; ((0 != this->pData[muiIndex]) && (muiIndex < GetLength())); muiIndex++ )
          {
-            GetCharNumericValue( pData[muiIndex] );
+            GetCharNumericValue( this->pData[muiIndex] );
          }
       }
       catch( ... )
@@ -2902,21 +3027,21 @@ public:
    {
       MASSERT( FindLength() == GetLength() );
 
-      if( (0 == pData[0]) || (0 == pData[1]) )
+      if( (0 == this->pData[0]) || (0 == this->pData[1]) )
       {
          return( false );
       }
 
-      if( tChar('-') != pData[0] )
+      if( tChar('-') != this->pData[0] )
       {
          return( false );
       }
 
       try
       {
-         for( MUI muiIndex = 1; ((0 != pData[muiIndex]) && (muiIndex < GetLength())); muiIndex++ )
+         for( MUI muiIndex = 1; ((0 != this->pData[muiIndex]) && (muiIndex < GetLength())); muiIndex++ )
          {
-            GetCharNumericValue( pData[muiIndex] );
+            GetCharNumericValue( this->pData[muiIndex] );
          }
       }
       catch( ... )
@@ -2940,7 +3065,7 @@ public:
 
          for( MUI muiChar = 0; muiChar < muiLength; muiChar++ )
          {
-            const unsigned __int64 uiAddPortion( uiBP * GetCharNumericValue( pData[muiLength - muiChar - 1] ) );
+            const unsigned __int64 uiAddPortion( uiBP * GetCharNumericValue( this->pData[muiLength - muiChar - 1] ) );
 
             if( (((unsigned __int64)-1) - ui64Result) < uiAddPortion )
             {
@@ -2973,7 +3098,7 @@ public:
       HFONT    hfO( (HFONT)SelectObject( hDC, hWindowFont ) );
 
       CRect rc( 0, 0, 0, 0 );
-      ::DrawText( hDC, GetMemory(), GetLength32(), &rc, DT_EXPANDTABS | DT_CALCRECT );
+      ::DrawText( hDC, this->GetMemory(), this->GetLength32(), &rc, DT_EXPANDTABS | DT_CALCRECT );
 
       SelectObject( hDC, hfO );
       ReleaseDC( hWnd, hDC );
@@ -3015,7 +3140,7 @@ public:
    {
       
       CRect rcWhole( 0, 0, 0, 0 );
-      ::DrawText( hDC, GetMemory(), GetLength(), &rcWhole, DT_EXPANDTABS | DT_CALCRECT );
+      ::DrawText( hDC, this->GetMemory(), this->GetLength(), &rcWhole, DT_EXPANDTABS | DT_CALCRECT );
 
       // Normalize for every case.
       rcWhole.NormalizeRect();
@@ -3032,7 +3157,7 @@ public:
 
       const COLORREF rgbClean( GetPixel( hMemDC, 0, 0 ) );
 
-      ::TabbedTextOut( hMemDC, 0, 0, GetMemory(), GetLength(), 0, NULL, 0 );
+      ::TabbedTextOut( hMemDC, 0, 0, this->GetMemory(), this->GetLength(), 0, NULL, 0 );
 
       // in this way set the rc to be min left, min top, max right and max bottom.
       CRect rc( rcWhole.right, rcWhole.bottom, rcWhole.left, rcWhole.top );
@@ -3086,7 +3211,7 @@ public:
    {
       CRect rc( 0, 0, 0, 0 );
 
-      ::DrawText( hDC, GetMemory(), GetLength32(), &rc, DT_EXPANDTABS | DT_CALCRECT );
+      ::DrawText( hDC, this->GetMemory(), this->GetLength32(), &rc, DT_EXPANDTABS | DT_CALCRECT );
 
       return( rc.Size() );
    }
@@ -3096,7 +3221,7 @@ public:
    {
       CRect   rcMax( 0, 0, 0, 0 );
 
-      ::DrawText( hDC, GetMemory(), GetLength(), &rcMax, DT_EXPANDTABS | DT_CALCRECT | DT_LEFT );
+      ::DrawText( hDC, this->GetMemory(), this->GetLength(), &rcMax, DT_EXPANDTABS | DT_CALCRECT | DT_LEFT );
 
       CSize   szMax( rcMax.Size() );
 
@@ -3119,7 +3244,7 @@ public:
       ::SetBkMode(    hdcMem, OPAQUE  );
 
 
-      ::DrawText( hdcMem, GetMemory(), GetLength(), rcMax, DT_EXPANDTABS | DT_LEFT );
+      ::DrawText( hdcMem, this->GetMemory(), this->GetLength(), rcMax, DT_EXPANDTABS | DT_LEFT );
 
       const int iMidY( szMax.cy / 2 );
       rcMax.right -= 1;
@@ -3144,7 +3269,6 @@ public:
 
       return( rcMax.Size() );
    }
-#endif
 
 
    bool IsContainedInPath( MStringEx< tChar > strPath ) const
@@ -3171,6 +3295,7 @@ public:
       return( StartWith( strPath, false ) );
    }
 
+
    // returns true if the dwShellExecuteReturnValue means Ok and false otherwise. The string
    // object will be loaded with the shell execute error or "Ok".
    bool ShellExecuteError( DWORD dwShellExecuteReturnValue )
@@ -3185,66 +3310,67 @@ public:
       switch( dwShellExecuteReturnValue ) {
 
          case 0:
-            this->LoadString( IDS_OS_OUT_OF_MEMORY_AND_RESOURCES, hDefaultTextResourceModule, 0 );  // The operating system is out of memory or resources.
+            *this = TEXT( "The operating system is out of memory or resources." );
             break;
 
          case ERROR_FILE_NOT_FOUND:
             // case SE_ERR_FNF:
-            this->LoadString( IDS_ERROR_FILE_NOT_FOUND, hDefaultTextResourceModule, 0 );            // The specified file was not found.
+            *this = TEXT( "The specified file was not found." );
             break;
 
          case ERROR_PATH_NOT_FOUND:
             // case SE_ERR_PNF:
-            this->LoadString( IDS_ERROR_PATH_NOT_FOUND, hDefaultTextResourceModule, 0 );            // The specified path was not found.
+            *this = TEXT( "The specified path was not found." );
             break;
 
          case ERROR_BAD_FORMAT:
-            this->LoadString( IDS_ERROR_BAD_FORMAT, hDefaultTextResourceModule, 0 );                // The .exe file is invalid (non-Win32® .exe or error in .exe image).
+            *this = TEXT( "The .exe file is invalid (non-Win32® .exe or error in .exe image)." );
             break;
 
          case SE_ERR_ACCESSDENIED:
-            this->LoadString( IDS_SE_ERR_ACCESSDENIED, hDefaultTextResourceModule, 0 );             // The operating system denied access to the specified file.
+            *this = TEXT( "The operating system denied access to the specified file." );
             break;
 
          case SE_ERR_ASSOCINCOMPLETE:
-            this->LoadString( IDS_SE_ERR_ASSOCINCOMPLETE, hDefaultTextResourceModule, 0 );          // The file name association is incomplete or invalid.
+            *this = TEXT( "The file name association is incomplete or invalid." );
             break;
 
          case SE_ERR_DDEBUSY:
-            this->LoadString( IDS_SE_ERR_DDEBUSY, hDefaultTextResourceModule, 0 );                  // The DDE transaction could not be completed because other DDE transactions were being processed.
+            *this = TEXT( "The DDE transaction could not be completed because other DDE transactions were being processed." );
             break;
 
          case SE_ERR_DDEFAIL:
-            this->LoadString( IDS_SE_ERR_DDEFAIL, hDefaultTextResourceModule, 0 );                  // The DDE transaction failed.
+            *this = TEXT( "The DDE transaction failed." );
             break;
 
          case SE_ERR_DDETIMEOUT:
-            this->LoadString( IDS_SE_ERR_DDETIMEOUT, hDefaultTextResourceModule, 0 );               // The DDE transaction could not be completed because the request timed out.
+            *this = TEXT( "The DDE transaction could not be completed because the request timed out." );
             break;
 
          case SE_ERR_DLLNOTFOUND:
-            this->LoadString( IDS_SE_ERR_DLLNOTFOUND, hDefaultTextResourceModule, 0 );              // The specified dynamic-link library was not found.
+            *this = TEXT( "The specified dynamic-link library was not found." );
             break;
 
          case SE_ERR_NOASSOC:
-            this->LoadString( IDS_SE_ERR_NOASSOC, hDefaultTextResourceModule, 0 );                  // There is no application associated with the given file name extension. This error will also be returned if you attempt to print a file that is not printable.
+            *this = TEXT( "There is no application associated with the given file name extension. This error will also be returned if you attempt to print a file that is not printable." );
             break;
 
          case SE_ERR_OOM:
-            this->LoadString( IDS_SE_ERR_OOM, hDefaultTextResourceModule, 0 );                      // There was not enough memory to complete the operation.
+            *this = TEXT( "There was not enough memory to complete the operation." );
             break;
 
          case SE_ERR_SHARE:
-            this->LoadString( IDS_SE_ERR_SHARE, hDefaultTextResourceModule, 0 );                    // A sharing violation occurred.
+            *this = TEXT( "A sharing violation occurred." );
             break;
 
          default:
-            this->LoadString( IDS_UNDEFINED_ERROR, hDefaultTextResourceModule, 0 );                 // Undefined Error.
+            *this = TEXT( "Undefined Error." );
             break;
       }
 
       return( false );
    }
+#endif
 
 
    friend MStringEx< tChar > operator+( const MStringEx< tChar >& strLeft, const tChar* pstrRight )
@@ -3294,6 +3420,7 @@ public:
    }
 
 
+#ifdef _WIN32
    MStringEx< tChar >& DerefernceFileSystemObject( const bool bCoInitialize )
    {
       if( bCoInitialize )
@@ -3301,12 +3428,14 @@ public:
          ::CoInitialize( NULL );
       }
 
+      TCHAR tchPath[MAX_PATH];
+
       try
       {
          SHFILEINFO si = { 0 };
          si.dwAttributes = SFGAO_LINK;
 
-         if( !SHGetFileInfo( pData, 0, &si, sizeof( si ), SHGFI_ATTR_SPECIFIED | SHGFI_ATTRIBUTES ) )
+         if( !SHGetFileInfo( this->pData, 0, &si, sizeof( si ), SHGFI_ATTR_SPECIFIED | SHGFI_ATTRIBUTES ) )
          {
             throw( MStringExException( MStringExException::CouldNotDereferenceFileSystemObject ) );
          }
@@ -3334,7 +3463,6 @@ public:
                throw( MStringExException( MStringExException::CouldNotDereferenceFileSystemObject ) );
             }
 
-            TCHAR             tchPath[MAX_PATH];
             WIN32_FIND_DATA   wfd;
 
             if( FAILED( pShellLink->GetPath( tchPath, MAX_PATH, &wfd, SLGP_RAWPATH ) ) )
@@ -3343,6 +3471,60 @@ public:
             }
 
             *this = tchPath;
+         }
+      }
+      catch( ... )
+      {
+         if( bCoInitialize )
+         {
+            ::CoUninitialize();
+         }
+
+         throw( MStringExException( MStringExException::CouldNotDereferenceFileSystemObject ) );
+      }
+
+      if( bCoInitialize )
+      {
+         ::CoUninitialize();
+      }
+
+      return( *this );
+   }
+
+
+   // The string contains path to the file or folder.
+   // const tChar* strPathLink    - filename of the newly created shortcut.
+   // const tChar* strDescription - shortcut description.
+   HRESULT CreateShortcut( const bool bCoInitialize, const tChar* strPathLink, const tChar* strDescription ) const
+   {
+      if( bCoInitialize )
+      {
+         ::CoInitialize( NULL );
+      }
+
+      try
+      {
+         CComPtr< IShellLink > ptrIShellLink; 
+
+         if( FAILED( CoCreateInstance( CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&ptrIShellLink ) ) ) 
+         {
+            throw( MStringExException( MStringExException::CouldNotCreateFileSystemLink ) );
+         }
+
+
+         ptrIShellLink->SetPath( GetAs< wchar_t >() ); 
+         ptrIShellLink->SetDescription( MStringEx< tChar >( strDescription ).GetAs< wchar_t >() ); 
+
+         CComPtr< IPersistFile > ptrIPersistFile; 
+         if( FAILED( ptrIShellLink->QueryInterface( IID_IPersistFile, (LPVOID*)&ptrIPersistFile ) ) )
+         {
+            throw( MStringExException( MStringExException::CouldNotCreateFileSystemLink ) );
+         }
+
+
+         if( FAILED( ptrIPersistFile->Save( MStringEx< tChar >( strPathLink ).GetAs< wchar_t >(), TRUE ) ) )
+         {
+            throw( MStringExException( MStringExException::CouldNotCreateFileSystemLink ) );
          }
 
          if( bCoInitialize )
@@ -3357,36 +3539,39 @@ public:
             ::CoUninitialize();
          }
 
-         throw( MStringExException( MStringExException::CouldNotDereferenceFileSystemObject ) );
+         throw( MStringExException( MStringExException::CouldNotCreateFileSystemLink ) );
       }
 
       return( *this );
    }
+#endif
 
 
+		 using MemoryPH<tChar>::AppendToFile;
    virtual const MStringEx< tChar >& AppendToFile( const TCHAR *ptcFilename, const bool bIncludeZeroTeminator )  const throw()
    {
       if( bIncludeZeroTeminator )
       {
-         __super::AppendToFile( ptcFilename );
+         MemoryPH< tChar >::AppendToFile( ptcFilename );
 
          return( *this );
       }
 
-      ShellMemory< tChar >( pData, muSize - 1 ).AppendToFile( ptcFilename );
+      ShellMemory< tChar >( this->pData, this->muSize - 1 ).AppendToFile( ptcFilename );
 
       return( *this );
    }
 
 
+   using MemoryPH<tChar>::SaveAsFile;
    virtual bool SaveAsFile( const TCHAR *ptcFilename, const bool bIncludeZeroTeminator, const DWORD dwCreationDisposition, const DWORD dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL )  const throw()
    {
       if( bIncludeZeroTeminator )
       {
-         return( __super::SaveAsFile( ptcFilename, dwCreationDisposition, dwFlagsAndAttributes, NULL ) );
+         return( MemoryPH< tChar >::SaveAsFile( ptcFilename, dwCreationDisposition, dwFlagsAndAttributes, NULL ) );
       }
 
-      return( ShellMemory< tChar >( pData, muSize - 1 ).SaveAsFile( ptcFilename, dwCreationDisposition, dwFlagsAndAttributes, NULL ) );
+      return( ShellMemory< tChar >( this->pData, this->muSize - 1 ).SaveAsFile( ptcFilename, dwCreationDisposition, dwFlagsAndAttributes, NULL ) );
    }
 
 
@@ -3406,20 +3591,29 @@ public:
 
       for( MUI uiChar = 0; uiChar < strData.GetLength(); uiChar++ )
       {
-         uiHash += primes4000001[strData.pData[uiChar]] * primes4000001[256 + uiChar];
+         uiHash += primes4000001[(int)strData.pData[uiChar]] * primes4000001[256 + uiChar];
       }
 
       return( uiHash );
    }
 
 
-   static inline MStringEx< tChar > GetAOFModuleFilename( const tChar* strModuleName )
+#if defined( _DEBUG )
+   template< class tMemClass > static void Trace( const MAtom< tMemClass >& mem, LPCTSTR strName, const bool bTransposed )
    {
-      MemoryPH< tChar > memModuleFileName( MUnit< tChar >( 40000 ) );
-      GetModuleFileName( _AtlBaseModule.GetModuleInstance(), memModuleFileName, memModuleFileName.GetSize().GetUnits32() );
+      MStringEx< TCHAR > strTrace( strName );
 
-      return( MStringEx< tChar >( MStringEx< tChar >::FF, L"%s\\%s", (LPCTSTR)MStringEx< tChar >( (LPCTSTR)memModuleFileName ).LeftFromR2LNthChar( tChar('\\'), 1, true ), strModuleName ) );
+      for( MUnit< tMemClass > w( 0 ); w < mem.GetSize(); w++ )
+      {
+         strTrace += ((bTransposed ? "\n" : "    ") +
+            MStringEx< TCHAR >( MStringEx< TCHAR >::NumberNoCommas, ((USHORT)(*this)[w]) >> 8, MStringEx< TCHAR >::Hexadecimal ) +
+            "-" +
+            MStringEx< TCHAR >( MStringEx< TCHAR >::NumberNoCommas, (BYTE)(*this)[w], MStringEx< TCHAR >::Hexadecimal ));
+      }
+
+      TRACE( strTrace );
    }
+#endif
 };
 
 
@@ -3429,8 +3623,8 @@ class MStringEx2Z : protected MStringEx< tChar >
 public:
    MStringEx2Z() : MStringEx< tChar >( MUnit< tChar >( 1 ) )
    {
-      pData[0] = 0;
-      pData[1] = 0;
+      this->pData[0] = 0;
+      this->pData[1] = 0;
    }
 
 
@@ -3439,8 +3633,8 @@ public:
    {
       Transfer( strSource );
 
-      pData[muSize.GetUnits()-2] = 0;
-      pData[muSize.GetUnits()-1] = 0;
+      this->pData[this->muSize.GetUnits()-2] = 0;
+      this->pData[this->muSize.GetUnits()-1] = 0;
    }
 
 
@@ -3451,14 +3645,14 @@ public:
    }
 
 
-   MStringEx2Z< tChar >& operator+=( typename const MStringEx< tChar >& strAdd2This )
+   MStringEx2Z< tChar >& operator+=( const MStringEx< tChar >& strAdd2This )
    {
       MStringEx< tChar > strString( MUnit< tChar >( GetLength() + 1 + strAdd2This.GetLength() + 1 ) );
 
       strString.Transfer( *this );
-      strString.Transfer( muSize - 1, strAdd2This );
+      strString.Transfer( this->muSize - 1, strAdd2This );
 
-      ExchangeMemory< tChar >( strString );
+      this->ExchangeMemory( strString );
 
       return( *this );
    }
@@ -3466,37 +3660,37 @@ public:
 
    MUI GetLength() const
    {
-      return( (muSize - 2).GetUnits() );
+      return( (this->muSize - 2).GetUnits() );
    }
 
 
    bool IsEmpty() const
    {
-      return( 2 == muSize );
+      return( 2 == this->muSize );
    }
 
 
    const tChar* GetMemory() const
    {
-      return( pData );
+      return( this->pData );
    }
 
 
    tChar* GetMemory()
    {
-      return( pData );
+      return( this->pData );
    }
 
 
    operator const tChar*() const
    {
-      return( pData );
+      return( this->pData );
    }
 
 
    operator tChar* ()
    {
-      return( pData );
+      return( this->pData );
    }
 };
 
@@ -3523,11 +3717,13 @@ public:
    }
 
 
+#ifdef _WIN32
    MSecureString( const HWND hWnd )
       :  MStringEx< tChar >( hWnd )
    {
       memSecureShell = *this;
    }
+#endif
 
 
    MSecureString( const tChar* strSecureString )
@@ -3553,14 +3749,14 @@ public:
    {
       memSecureShell.Empty();
 
-      if( objMStringEx.muSize != muSize )
+      if( objMStringEx.muSize != this->muSize )
       {
          ReAllocate( objMStringEx.muSize );
       }
 
       Transfer( objMStringEx );
 
-      eNumericBase = objMStringEx.eNumericBase;
+      this->eNumericBase = objMStringEx.eNumericBase;
 
       memSecureShell = *this;
 
@@ -3570,21 +3766,21 @@ public:
 
    operator const tChar*() const
    {
-      return( pData );
+      return( this->pData );
    }
 
 
    bool IsEmpty() const
    {
-      return( __super::IsEmpty() );
+      return( MStringEx< tChar >::IsEmpty() );
    }
 
 
-   MAtom< tChar >& Empty() throw( MAtomException )
+   MAtom< tChar >& Empty()
    {
       memSecureShell.Empty();
 
-      __super::Empty();
+      MStringEx< tChar >::Empty();
 
       memSecureShell = *this;
 
@@ -3594,25 +3790,25 @@ public:
 
    const tChar* GetMemory() const
    {
-      return( pData );
+      return( this->pData );
    }
 
 
-   bool operator==( typename const MSecureString< tChar > &strSecureToCompare ) const
+   bool operator==( const MSecureString< tChar >& strSecureToCompare ) const
    {
-      return( __super::operator==( strSecureToCompare ) );
+      return( MStringEx< tChar >::operator==( strSecureToCompare ) );
    }
 
 
-   bool operator!=( typename const MSecureString< tChar > &strSecureToCompare ) const
+   bool operator!=( const MSecureString< tChar >& strSecureToCompare ) const
    {
-      return( __super::operator!=( strSecureToCompare ) );
+      return( MStringEx< tChar >::operator!=( strSecureToCompare ) );
    }
 
 
    MSecureString< tChar >& ToLower()
    {
-      __super::ToLower();
+      MStringEx< tChar >::ToLower();
 
       return( *this );
    }
@@ -3620,7 +3816,7 @@ public:
 
    MSecureString< tChar >& ToUpper()
    {
-      __super::ToUpper();
+      MStringEx< tChar >::ToUpper();
 
       return( *this );
    }
@@ -3643,7 +3839,7 @@ public:
          {
             for( MUI muiChars = 0; muiChars < muiChars2RemoveLength; muiChars++ )
             {
-               if( strChars2Remove[muiChars] == pData[muiThisIndex] )
+               if( strChars2Remove[muiChars] == this->pData[muiThisIndex] )
                {
                   bRemove = true;
 
@@ -3657,7 +3853,7 @@ public:
             continue;
          }
 
-         strNewString[muiDstIndex++] = pData[muiThisIndex];
+         strNewString[muiDstIndex++] = this->pData[muiThisIndex];
       }
 
       strNewString[muiDstIndex] = 0;
@@ -3666,7 +3862,7 @@ public:
 
       MASSERT( strNewString.GetLength() == strNewString.FindLength() );
 
-      ExchangeMemory< tChar >( strNewString );
+      this->ExchangeMemory( strNewString );
 
       memSecureShell = *this;
 
@@ -3676,12 +3872,13 @@ public:
 
    MSecureString< char > GetAsMultiByte( UINT uiCodePage = CP_ACP ) const throw()
    {
-      if( !IsWchar() )
+      if( !this->IsWchar() )
       {
          // The object is multi-byte itself.
-         return( MSecureString< char >( (char*)pData ) );
+         return( MSecureString< char >( (char*)this->pData ) );
       }
 
+#ifdef _WIN32
       if( !IsValidCodePage( uiCodePage) )
       {
          uiCodePage = CP_ACP;
@@ -3691,8 +3888,8 @@ public:
       MUnit< char > muSizeRequired;
 
 
-      BYTE* ptrDataCopy( (BYTE*)pData );
-      const BYTE* ptrLastData( (BYTE*)((MUI)pData + muSize.InBytes()) );
+      BYTE* ptrDataCopy( (BYTE*)this->pData );
+      const BYTE* ptrLastData( (BYTE*)((MUI)this->pData + this->muSize.InBytes()) );
 
 
       for( DWORD dwChunkSize( MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 2 ) ); ptrDataCopy < ptrLastData; ptrDataCopy += dwChunkSize, dwChunkSize = MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 2 ) )
@@ -3703,7 +3900,7 @@ public:
 
       MSecureString< char > strString( muSizeRequired - 1 );
       muSizeRequired = 0;
-      ptrDataCopy = (BYTE*)pData;
+      ptrDataCopy = (BYTE*)this->pData;
 
 
       for( DWORD dwChunkSize( MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 2 ) ); ptrDataCopy < ptrLastData; ptrDataCopy += dwChunkSize, dwChunkSize = MMIN< DWORD, MUI, DWORD >( ptrLastData - ptrDataCopy, 1U << 2 ) )
@@ -3715,32 +3912,45 @@ public:
 
 
       return( strString );
+#else
+      MSecureString< char > strString( MUnit< char >( this->GetLength() ) );
+      
+      wcstombs( (char*)strString.GetMemory(), (const wchar_t*)this->pData, strString.GetSize().GetUnits() );
+      
+      ((char*)strString.GetMemory())[strString.GetSize().GetUnits() - 1] = 0;
+      
+      return( strString );
+#endif
    }
 
 
    MUI GetLength() const
    {
-      return( __super::GetLength() );
+      return( MStringEx< tChar >::GetLength() );
    }
 
 
    MUnit< tChar > GetSize() const
    {
-      return( __super::GetSize() );
+      return( MStringEx< tChar >::GetSize() );
    }
 
 
    template< class tClass >
    ShellMemory< tClass > GetMemoryAtom()
    {
-      return( ShellMemory< tClass >( (tClass*)pData, GetSize().As< tClass >() ) );
+      return( this->ShellMemory( (tClass*)this->pData, GetSize().template As< tClass >() ) );
    }
 };
 
 
-typedef MStringEx< TCHAR >   string;
 typedef MStringEx< char >    string_c;
-typedef MStringEx2Z< TCHAR > string2z;
+typedef MStringEx< wchar_t > string_w;
+typedef MStringEx2Z< char >  string2z;
+
+typedef string_c str;
 
 
-#pragma warning( pop )
+#ifdef _WIN32
+   #pragma warning( pop )
+#endif

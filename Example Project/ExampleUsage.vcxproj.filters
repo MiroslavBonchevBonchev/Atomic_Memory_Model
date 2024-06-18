@@ -23,9 +23,14 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\AMM\Common.h">
+    <None Include="cs.cd">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\AMM\Atomic Memory Model.pdf">
       <Filter>Header Files\AMM</Filter>
-    </ClInclude>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="..\AMM\MAtom.h">
       <Filter>Header Files\AMM</Filter>
     </ClInclude>
@@ -44,16 +49,20 @@
     <ClInclude Include="..\AMM\MSmartPtr.h">
       <Filter>Header Files\AMM</Filter>
     </ClInclude>
+    <ClInclude Include="..\AMM\MUnit.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\AMM\Pair.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
     <ClInclude Include="..\AMM\ResId.h">
       <Filter>Header Files\AMM</Filter>
     </ClInclude>
     <ClInclude Include="..\AMM\StringEx.h">
       <Filter>Header Files\AMM</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="cs.cd">
-      <Filter>Source Files</Filter>
-    </None>
+    <ClInclude Include="..\AMM\CommonAMM.h">
+      <Filter>Header Files\AMM</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

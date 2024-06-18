@@ -4,7 +4,7 @@
 //
 //                   ATOMIC MEMORY MODEL - Implementation Example 'Phase One'
 //
-// © Copyright 2001 - 2012 by Miroslav Bonchev Bonchev. All rights reserved.
+// © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev. All rights reserved.
 //
 //
 //******************************************************************************************************
@@ -13,7 +13,7 @@
 // Open Source License – The MIT License
 //
 //
-// {your product} uses the Atomic Memory Model by Miroslav Bonchev Bonchev.
+// Atomic Memory Model © Copyright 2001 - 2014 by Miroslav Bonchev Bonchev.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 // associated  documentation files  (the "Software"),  to deal  in the Software without restriction,
@@ -39,10 +39,18 @@
 #pragma once
 
 
-#include "Common.h"
+#include "CommonAMM.h"
 #include "MException.h"
 #include "MList.h"
-//#include "typeinfo.h"
+
+
+#ifdef _WIN32
+// MMemory is the original first phase of the Atomic Memory Model. This class is no longer developed however
+// it may still contain certain functionality required which MAtom, the currently developped technology does 
+// not have, e.g. the Segmented-Memory class.
+
+
+#include "typeinfo.h"
 #include "Wininet.h"
 
 
@@ -947,7 +955,7 @@ public:
          memSignature[dwSum] = 0;
 
          const DWORD dwBase( dwSum * muBytesRow.InBytes32< true >() );
-         const DWORD dwLine( min( muBytesRow.InBytes32< true >(), GetSizeBytes32< true >() - dwBase ) );
+         const DWORD dwLine( MMIN< DWORD, DWORD >( muBytesRow.InBytes32< true >(), GetSizeBytes32< true >() - dwBase ) );
 
          for( DWORD dwIndex = 0; dwIndex < dwLine; dwIndex++ )
          {
@@ -1825,3 +1833,4 @@ public:
 
    virtual void InsertIdentity( const MemUnits&, const MemUnits&, const MemUnits& ) throw() { MASSERT( FALSE ); }
 };
+#endif
